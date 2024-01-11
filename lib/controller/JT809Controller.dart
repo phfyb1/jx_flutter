@@ -1,5 +1,7 @@
+// ignore_for_file: avoid_print, prefer_typing_uninitialized_variables, empty_statements, non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_overrides, file_names, unused_import
+
 import 'package:get/get.dart';
-import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import '../util/ControllerUtils.dart' as utils;
 
 class JT809Controler extends GetxController {
   @override
@@ -50,40 +52,40 @@ class JT809Controler extends GetxController {
           print('头标识:, ${result1[0]}');
           break;
         case 2: //数据长度
-          dataResultList.add('数据长度: ${combination(result1.sublist(1, 5))}\n');
-          print('数据长度: ${combination(result1.sublist(1, 5))}');
+          dataResultList.add('数据长度: ${utils.combination(result1.sublist(1, 5))}\n');
+          print('数据长度: ${utils.combination(result1.sublist(1, 5))}');
           break;
         case 3: //报文序列号
-          dataResultList.add('报文序列号: ${combination(result1.sublist(5, 9))}\n');
-          print('报文序列号: ${combination(result1.sublist(5, 9))}');
+          dataResultList.add('报文序列号: ${utils.combination(result1.sublist(5, 9))}\n');
+          print('报文序列号: ${utils.combination(result1.sublist(5, 9))}');
           break;
         case 4: //业务数据类型
           dataResultList.add(
-              '业务数据类型: ${combination(result1.sublist(9, 11))}, ${type(combination(result1.sublist(9, 11)))}\n');
+              '业务数据类型: ${utils.combination(result1.sublist(9, 11))}, ${type(utils.combination(result1.sublist(9, 11)))}\n');
           print(
-              '业务数据类型: ${combination(result1.sublist(9, 11))}, ${type(combination(result1.sublist(9, 11)))}');
+              '业务数据类型: ${utils.combination(result1.sublist(9, 11))}, ${type(utils.combination(result1.sublist(9, 11)))}');
           break;
         case 5: //下级平台接入码
           dataResultList.add(
-              '下级平台接入码: ${combination(result1.sublist(11, 15))},解析后： ${hexToDec(combination(result1.sublist(11, 15)))}\n');
+              '下级平台接入码: ${utils.combination(result1.sublist(11, 15))},解析后： ${utils.hexToDecCombination(result1.sublist(11, 15))}\n');
           print(
-              '下级平台接入码: ${combination(result1.sublist(11, 15))},解析后： ${hexToDec(combination(result1.sublist(11, 15)))}');
+              '下级平台接入码: ${utils.combination(result1.sublist(11, 15))},解析后： ${utils.hexToDecCombination(result1.sublist(11, 15))}');
           break;
         case 6: //协议版本号标识
-          dataResultList.add('协议版本号标识: ${combination(result1.sublist(15, 18))}\n');
-          print('协议版本号标识: ${combination(result1.sublist(15, 18))}');
+          dataResultList.add('协议版本号标识: ${utils.combination(result1.sublist(15, 18))}\n');
+          print('协议版本号标识: ${utils.combination(result1.sublist(15, 18))}');
           break;
         case 7: //报文加密标识位
           dataResultList.add('报文加密标识位: ${result1[18]}\n');
           print('报文加密标识位: ${result1[18]}');
           break;
         case 8: //数据加密秘钥
-          dataResultList.add('数据加密秘钥: ${combination(result1.sublist(19, 23))}\n');
-          print('数据加密秘钥: ${combination(result1.sublist(19, 23))}');
+          dataResultList.add('数据加密秘钥: ${utils.combination(result1.sublist(19, 23))}\n');
+          print('数据加密秘钥: ${utils.combination(result1.sublist(19, 23))}');
           break;
         case 9: //数据体
           // dataResultList += '头标识:, ${result1[0]}\n';
-          chooseType(combination(result1.sublist(9, 11)), result1);
+          chooseType(utils.combination(result1.sublist(9, 11)), result1);
           break;
         case 10: //校验码
           dataResultList.add(
@@ -135,22 +137,22 @@ class JT809Controler extends GetxController {
       switch (i) {
         case 0: //用户名
           dataResultList.add(
-              '用户名:${combination(BWresult.sublist(0, 4))}，解析：${hexToDec(combination(BWresult.sublist(0, 4)))}\n');
+              '用户名:${utils.combination(BWresult.sublist(0, 4))}，解析：${utils.hexToDecCombination(BWresult.sublist(0, 4))}\n');
           print(
               '用户名:,${BWresult[0]},${BWresult[1]},${BWresult[2]},${BWresult[3]}');
           break;
         case 1: //密码
           var pwd = BWresult.sublist(4, 12);
-          dataResultList.add('密码:${combination(pwd)}，解析后的密码：${changetoHex(combination2(pwd))}\n');
-          print('密码:${combination(pwd)}，解析后的密码：${changetoHex(combination2(pwd))}');
+          dataResultList.add('密码:${utils.combination(pwd)}，解析后的密码：${utils.changetoHexCombination(pwd)}\n');
+          print('密码:${utils.combination(pwd)}，解析后的密码：${utils.changetoHexCombination(pwd)}');
           // print('密码:',BWresult[4],BWresult[5],BWresult[6],BWresult[7],BWresult[8],BWresult[9],BWresult[10],BWresult[11])
           break;
         case 2: //下级IP
           var ip = BWresult.sublist(12, BWresult.length - 3);
           dataResultList.add(
-              "下级IP:${combination(ip)}\n解析后的IP：${changetoHex(combination2(ip))}\n");
-          print('下级IP:${combination(ip)}');
-          print('解析后的IP：${changetoHex(combination2(ip))}');
+              "下级IP:${utils.combination(ip)}\n解析后的IP：${utils.changetoHexCombination(ip)}\n");
+          print('下级IP:${utils.combination(ip)}');
+          print('解析后的IP：${utils.changetoHexCombination(ip)}');
           break;
         case 3: //遥测站地址
           dataResultList.add(
@@ -194,8 +196,8 @@ class JT809Controler extends GetxController {
           break;
         case 1: //校验码
           var pwd = BWresult.sublist(1, 5);
-          dataResultList.add('校验码:${combination(pwd)}\n');
-          print('校验码:${combination(pwd)}');
+          dataResultList.add('校验码:${utils.combination(pwd)}\n');
+          print('校验码:${utils.combination(pwd)}');
           break;
       }
     }
@@ -209,66 +211,46 @@ class JT809Controler extends GetxController {
       switch (i) {
         case 0:
           // 车牌号
-          dataResultList.add('车牌号:${combination(BWresult.sublist(0, 22))}\n');
+          dataResultList.add('车牌号:${utils.combination(BWresult.sublist(0, 22))}\n');
           dataResultList.add(
-              '解析后的车牌:${changetoHex(combination2(BWresult.sublist(0, 22)))}\n');
-          print('车牌号:${combination(BWresult.sublist(0, 22))}');
-          print('解析后的车牌:${changetoHex(combination2(BWresult.sublist(0, 22)))}');
+              '解析后的车牌:${utils.changetoHexCombination(BWresult.sublist(0, 22))}\n');
+          print('车牌号:${utils.combination(BWresult.sublist(0, 22))}');
+          print('解析后的车牌:${utils.changetoHexCombination(BWresult.sublist(0, 22))}');
           break;
 
         case 1:
           // 车牌颜色
           // var pwd = BWresult.substring(22, 23);
           dataResultList.add(
-              '车牌颜色:${combination(BWresult[23])}, ${carColor(combination(BWresult[23]))}\n');
+              '车牌颜色:${utils.combination(BWresult[23])}, ${carColor(utils.combination(BWresult[23]))}\n');
           print(
-              '车牌颜色:${combination(BWresult[23])}, ${carColor(combination(BWresult[23]))}');
+              '车牌颜色:${utils.combination(BWresult[23])}, ${carColor(utils.combination(BWresult[23]))}');
           break;
 
         case 2:
           // 子业务标识
-          dataResultList.add('子业务标识:${combination(BWresult.sublist(24, 25))}\n');
-          print('子业务标识:${combination(BWresult.sublist(24, 25))}');
+          dataResultList.add('子业务标识:${utils.combination(BWresult.sublist(24, 25))}\n');
+          print('子业务标识:${utils.combination(BWresult.sublist(24, 25))}');
           break;
 
         case 3:
           // 后续数据长度
-          dataResultList.add('后续数据长度:${combination(BWresult.sublist(25, 29))}\n');
-          print('后续数据长度:${combination(BWresult.sublist(25, 29))}');
+          dataResultList.add('后续数据长度:${utils.combination(BWresult.sublist(25, 29))}\n');
+          print('后续数据长度:${utils.combination(BWresult.sublist(25, 29))}');
           break;
 
         case 4:
           // 数据部分
           dataResultList.add(
-              '数据部分:${combination(BWresult.sublist(29, BWresult.length - 1))}\n');
+              '数据部分:${utils.combination(BWresult.sublist(29, BWresult.length - 1))}\n');
           print(
-              '数据部分:${combination(BWresult.sublist(29, BWresult.length - 1))}');
+              '数据部分:${utils.combination(BWresult.sublist(29, BWresult.length - 1))}');
           break;
       }
     }
   }
 
-//将数组组合成字符串
-  combination(a) {
-    var message = '';
-    for (var i = 0; i < a.length; i++) {
-      message += a[i];
-    }
-    return message;
-  }
 
-//将数组组合成字符串
-  combination2(a) {
-    var message = '';
-    for (var i = 0; i < a.length; i++) {
-      if (i < a.length - 1) {
-        message += a[i] + ' ';
-      } else {
-        message += a[i];
-      }
-    }
-    return message;
-  }
 
 //数据类型判断
   type(a) {
@@ -360,14 +342,6 @@ class JT809Controler extends GetxController {
     return type;
   }
 
-//转换为16进制
-  String changetoHex(String hexString) {
-    var str = '';
-    hexString.split(' ').forEach((val) {
-      str += String.fromCharCodes([int.parse(val, radix: 16)]);
-    });
-    return str;
-  }
 
 //车辆颜色
   carColor(a) {
@@ -394,8 +368,4 @@ class JT809Controler extends GetxController {
     return color;
   }
 
-//16进制转换为10进制
-  hexToDec(String hexString) {
-    return int.parse(hexString, radix: 16);
-  }
 }

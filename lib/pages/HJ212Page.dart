@@ -5,7 +5,7 @@ import 'package:flutter/widgets.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:jx_flutter/controller/HJ212Controller.dart';
-import 'package:jx_flutter/unit/editInput.dart';
+import 'package:jx_flutter/util/EditInput.dart';
 
 class HJ212Page extends GetView<HJ212Controller> {
   // class HJ212Page extends GetView<HJ212ControllerNew> {

@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/ModBusController.dart';
-import '../unit/editInput.dart';
+import '../util/EditInput.dart';
 
 var height;
 var width;

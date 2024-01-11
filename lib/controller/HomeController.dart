@@ -1,7 +1,10 @@
+// ignore_for_file: unused_import, unnecessary_overrides, non_constant_identifier_names, prefer_typing_uninitialized_variables, avoid_print, unrelated_type_equality_checks, unnecessary_brace_in_string_interps, file_names
+
 import 'dart:math';
 
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import '../util/ControllerUtils.dart' as utils;
 
 class HomeControler extends GetxController {
   @override
@@ -29,19 +32,10 @@ class HomeControler extends GetxController {
 
   List<String> TSDBData = []; //组合后数据的存放数组
 
-  round() {
-    int roundValue;
-    roundValue = (Random().nextDouble() *
-                (int.parse(valueMax.value) - int.parse(valueMin.value)) +
-            int.parse(valueMin.value))
-        .round();
-    print('roundValue: $roundValue');
-    return roundValue.toString();
-  }
 
   packaging(int time) {
     String demo =
-        '${metric.value} $time ${round()} mn=${mn.value} ec=${ec.value} mp=${mp.value} md=${md.value} mpType=${mp_type.value}\n';
+        '${metric.value} $time ${utils.round(valueMin,valueMax)} mn=${mn.value} ec=${ec.value} mp=${mp.value} md=${md.value} mpType=${mp_type.value}\n';
     print(demo);
     return demo;
   }
@@ -53,15 +47,15 @@ class HomeControler extends GetxController {
       int time;
       if (mp_type.value == 'Rtd') {
         // print('rtd');
-        time = dateStringToTimestamp(timeStart.value) + 60 * index;
+        time = utils.dateStringToTimestamp(timeStart.value) + 60 * index;
       } else {
         // print('avg');
         if (type == 'hour') {
           // print('hour');
-          time = dateStringToTimestamp(timeStart.value) + 3600 * index;
+          time = utils.dateStringToTimestamp(timeStart.value) + 3600 * index;
         } else {
           // print('day');
-          time = dateStringToTimestamp(timeStart.value) + 3600 * 24 * index;
+          time = utils.dateStringToTimestamp(timeStart.value) + 3600 * 24 * index;
         }
       }
       endtime = time;
@@ -71,9 +65,3 @@ class HomeControler extends GetxController {
     print('addPack:${TSDBData.length}');
   }
 }
-
-dateStringToTimestamp(String dateStr) {
-    var format = DateFormat('yyyy-MM-dd HH:mm:ss');
-    var dateTime = format.parse(dateStr);
-    return dateTime.millisecondsSinceEpoch / 1000;
-  }
