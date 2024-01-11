@@ -57,6 +57,7 @@ class ModBusControler extends GetxController {
     return dataResultList;
   }
 
+//标准modbus协议的解析
   standardModBus(List<String> array) {
     // print('长度：'+ array.length);
     try {
@@ -100,9 +101,10 @@ class ModBusControler extends GetxController {
     }
   }
 
+//非标准modbus协议的解析
   offStandardModBus(array) {
     try {
-      for (var i = 1; i < 6; i++) {
+      for (var i = 1; i <= 6; i++) {
         switch (i) {
           case 1: //设备地址
             dataResultList.add('设备地址: ${array[0]}\n');
@@ -112,20 +114,25 @@ class ModBusControler extends GetxController {
             dataResultList.add('功能码: ${combination(array.sublist(1, 2))}\n');
             print('功能码: ${combination(array.sublist(1, 2))}');
             break;
-          case 3: //数据长度
-            dataResultList.add(
-                '数据长度: ${combination(array.sublist(2, 3))}，解析寄存器个数：${hexToDec(combination(array.sublist(2, 3))) / 2}\n');
-            print(
-                '数据长度: ${combination(array.sublist(2, 3))}，解析寄存器个数：${hexToDec(combination(array.sublist(2, 3))) / 2}');
-            break;
-          case 4: //数据
-            BWresult = array.sublist(3, array.length - 2);
-            print(BWresult.length);
+          case 3: //起始地址
+            BWresult = array.sublist(2, 4);
+            dataResultList.add('起始地址: ${combination(BWresult)}\n');
+            // print(BWresult.length);
             // dataResultList.add('数据: ${dataAlone(BWresult)}\n');
-            dataAlone(BWresult);
-            print('数据: ${combination(BWresult)}');
+            // dataAlone(BWresult);
+            print('起始地址: ${combination(BWresult)}');
             break;
-          case 5: //校验码
+          case 4: //数据长度
+            dataResultList.add(
+                '数据长度: ${combination(array.sublist(4, 6))}，解析寄存器个数：${hexToDec(combination(array.sublist(4, 6))) / 4}\n');
+            print(
+                '数据长度: ${combination(array.sublist(4, 6))}，解析寄存器个数：${hexToDec(combination(array.sublist(4, 6))) / 4}');
+            break;
+          case 5:
+            offDataAlone(array.sublist(6, 8));
+            // dataResultList.add('数据: ${combination(array.sublist(6, 8))}\n');
+            break;
+          case 6: //校验码
             dataResultList.add(
                 "\n校验码: ${combination(array.sublist(array.length - 2, array.length))}");
             print(
@@ -149,6 +156,20 @@ class ModBusControler extends GetxController {
       try {
         DaData =
             '地址：${adress++}，数据：${combination(array.sublist(i, i + 2))}，解析：${hexToDec(combination(array.sublist(i, i + 2)))}';
+        print(DaData);
+        dataResultList.add(DaData);
+      } catch (e) {
+        print("错误信息：${e}");
+      }
+    }
+  }
+
+  //非标准modbus列出并解析单个地址的值
+  offDataAlone(List array) {
+    for (var i = 0; i < array.length; i += 2) {
+      try {
+        DaData =
+            '地址：${hexToDec(combination(BWresult))+1}，数据：${combination(array.sublist(i, i + 2))}，解析：${hexToDec(combination(array.sublist(i, i + 2)))}';
         print(DaData);
         dataResultList.add(DaData);
       } catch (e) {

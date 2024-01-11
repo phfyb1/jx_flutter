@@ -32,7 +32,7 @@ class ModBusPage extends GetView<ModBusControler> {
           child: Container(
               child: Column(children: [
             choose(),
-            adress('起始地址'),
+            Obx(() => adress('起始地址'),),
             Container(
                 height: height * 0.1,
                 alignment: Alignment.center,
@@ -56,7 +56,8 @@ class ModBusPage extends GetView<ModBusControler> {
   }
 
   Widget adress(string) {
-    return Container(
+    if (controller.standard.value==true) {
+      return Container(
       child: Column(
         children: [
           Row(mainAxisAlignment: MainAxisAlignment.start, children: [
@@ -98,6 +99,8 @@ class ModBusPage extends GetView<ModBusControler> {
         ],
       ),
     );
+    }
+    return Container(height: 10);
   }
 
   Widget Data() {
@@ -163,6 +166,7 @@ class ModBusPage extends GetView<ModBusControler> {
                 ],
                 onChanged: (value) {
                   controller.standard.value = value!;
+                  // print('是否标准modbus:${controller.standard.value}，选择的：${value}');
                   // Get.snackbar('title', '${controller.mp_type.value}');
                 },
                 borderRadius: BorderRadius.circular(20),
