@@ -28,6 +28,8 @@ class HydrogenPage extends GetView<HydrogenController> {
             //     onChanged: (value) {
             //       controller.metric.value = value;
             //     }),
+            Text('请用英文输入',style: TextStyle(color: Colors.purple,fontSize: 20),),
+            Container(height: 20,),
             MessageRow('username', (value) {
               controller.username.value = value;
             },hintText: '给加氢站的用户名'),
