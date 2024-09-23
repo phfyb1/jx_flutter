@@ -29,6 +29,7 @@ class HomePage extends StatelessWidget {
             nameButton('JT809解析', AppRoutes.JT809),
             nameButton('HJ212造数据', AppRoutes.HJ212),
             nameButton('ModBus解析', AppRoutes.ModBus),
+            nameButton('加氢站建表SQL生成', AppRoutes.Hydrogen),
             // nameButton('test', AppRoutes.HJ212),
           ],
         ),
