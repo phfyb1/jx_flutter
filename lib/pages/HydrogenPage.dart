@@ -118,7 +118,7 @@ class HydrogenPage extends GetView<HydrogenController> {
   Widget showType() {
     if (controller.show.value) {
       return Column(mainAxisAlignment: MainAxisAlignment.center,children: [
-          Text('SQL'),
+          // Text('SQL'),
             Text(
               '若有显示问题，请按F12看后台打印的结果',
               style: TextStyle(fontSize: 10),
@@ -135,7 +135,7 @@ class HydrogenPage extends GetView<HydrogenController> {
                       shrinkWrap: true,
                       physics: ClampingScrollPhysics(),
                       itemBuilder: (context, index) {
-                        return Text(controller.dataResultList.value[index]);
+                        return SelectableText(controller.dataResultList.value[index]);
                       },
                     )
                 )
