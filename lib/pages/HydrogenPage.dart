@@ -18,7 +18,7 @@ class HydrogenPage extends GetView<HydrogenController> {
         title: Text('加氢站建表SQL生成'),
       ),
       body: SingleChildScrollView(
-        child: Container(
+          child: Container(
         width: MediaQuery.of(context).size.width,
         // width: 1034,
         child: Column(
@@ -28,11 +28,16 @@ class HydrogenPage extends GetView<HydrogenController> {
             //     onChanged: (value) {
             //       controller.metric.value = value;
             //     }),
-            Text('请用英文输入',style: TextStyle(color: Colors.purple,fontSize: 20),),
-            Container(height: 20,),
+            Text(
+              '请用英文输入',
+              style: TextStyle(color: Colors.purple, fontSize: 20),
+            ),
+            Container(
+              height: 20,
+            ),
             MessageRow('username', (value) {
               controller.username.value = value;
-            },hintText: '给加氢站的用户名'),
+            }, hintText: '给加氢站的用户名'),
             // editInput(
             //     hintText: 'timeStart',
             //     onChanged: (value) {
@@ -41,7 +46,7 @@ class HydrogenPage extends GetView<HydrogenController> {
             MessageRow('password', (value) {
               controller.password.value = value;
               // Get.snackbar('time', '${controller.timeStart.value}');
-            },hintText: '给加氢站的密码'),
+            }, hintText: '给加氢站的密码'),
             // editInput(
             //     hintText: 'valueMin',
             //     onChanged: (value) {
@@ -49,7 +54,7 @@ class HydrogenPage extends GetView<HydrogenController> {
             //     }),
             MessageRow('hydrogen_code', (value) {
               controller.hydrogen_code.value = value;
-            },hintText: '加氢站的编码'),
+            }, hintText: '加氢站的编码'),
             // editInput(
             //     hintText: 'valueMax',
             //     onChanged: (value) {
@@ -57,7 +62,7 @@ class HydrogenPage extends GetView<HydrogenController> {
             //     }),
             MessageRow('hydrogen_gun_code', (value) {
               controller.hydrogen_gun_code.value = value;
-            },hintText: '加氢机的编码，有多个用逗号隔开'),
+            }, hintText: '加氢枪的编码，有多个用逗号隔开'),
             // editInput(
             //     hintText: 'mn',
             //     onChanged: (value) {
@@ -65,24 +70,26 @@ class HydrogenPage extends GetView<HydrogenController> {
             //     }),
             MessageRow('hydrogen_containers_num', (value) {
               controller.hydrogen_containers_num.value = value;
-            },hintText: '储氢容器的编码，有多个用逗号隔开'),
+            }, hintText: '储氢容器的编码，有多个用逗号隔开'),
             // editInput(
             //     hintText: 'ec',
             //     onChanged: (value) {
             //       controller.ec.value = value;
             //     }),
-           
+
             Container(
               // width: MediaQuery.of(context).size.width * 0.2,
-              width: 1034*0.2,
+              width: 1034 * 0.2,
               // height: MediaQuery.of(context).size.height * 0.1,
-              height: 644*0.1,
+              height: 644 * 0.1,
               child: ElevatedButton(
                 onPressed: () {
                   // Get.snackbar('with', '${MediaQuery.of(context).size.width}');
-                  controller.product();
+                  controller.show.value
+                      ? controller.clean()
+                      : controller.product();
                 },
-                child: Text('生成SQL'),
+                child: Obx(() => Text(controller.buttonText.value)),
               ),
             ),
             Container(
@@ -91,61 +98,86 @@ class HydrogenPage extends GetView<HydrogenController> {
               width: 1034,
               child: Obx(() => showType()),
             ),
-              // Obx(() => showType()),
-            
+            // Obx(() => showType()),
           ],
         ),
-      )
-      ),
+      )),
     );
   }
 
-  Widget MessageRow(name, onchanged,{hintText}) {
+  Widget MessageRow(name, onchanged, {hintText}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
           width: 100,
-          child: Text(name,style: TextStyle(color: Colors.green),),
+          child: Text(
+            name,
+            style: TextStyle(color: Colors.green),
+          ),
         ),
-        editInput(hintText: hintText??name, onChanged: onchanged),
+        editInput(hintText: hintText ?? name, onChanged: onchanged),
       ],
     );
   }
 
-  
+  // ButtonText(){
+  //   if(controller.show.value){
+  //     return Text('清空结果');
+  //   }else{
+  //     return Text('生成SQL');
+  //   }
+  // }
 
   Widget showType() {
     if (controller.show.value) {
-      return Column(mainAxisAlignment: MainAxisAlignment.center,children: [
-          // Text('SQL'),
-            Text(
-              '若有显示问题，请按F12看后台打印的结果',
-              style: TextStyle(fontSize: 10),
-            ),
-            // Obx(() => Text('${controller.data}')),
-            Container(
-                alignment: Alignment.centerLeft,
-                child:
-            Obx(() => 
-            ListView.builder(
-                      padding: EdgeInsets.only(left: width * 0.1,top: 10),
-                      // padding: EdgeInsets.only(left: 10),
-                      itemCount: controller.dataResultList.length,
-                      shrinkWrap: true,
-                      physics: ClampingScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        return SelectableText(controller.dataResultList.value[index]);
-                      },
-                    )
-                )
-                ),
+      return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Text(
+          '若有显示问题，请按F12看后台打印的结果',
+          style: TextStyle(fontSize: 10),
+        ),
+        // Obx(() => Text('${controller.data}')),
+        Container(
+            alignment: Alignment.centerLeft,
+            child: Obx(() => ListView.builder(
+                  padding: EdgeInsets.only(left: width * 0.1, top: 10),
+                  // padding: EdgeInsets.only(left: 10),
+                  itemCount: controller.dataResultList.length,
+                  shrinkWrap: true,
+                  physics: ClampingScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    // return SelectableText(controller.dataResultList.value[index]);},
+                    return SQLText(index);},
+                ))),
         Container(height: 10),
       ]);
     }
-    return Container(width: width,height: 10,);
+    return Container(
+      width: width,
+      height: 10,
+    );
+  }
+
+  SQLText(index) {
+    return Row(mainAxisAlignment: MainAxisAlignment.start,
+     crossAxisAlignment: CrossAxisAlignment.start,
+     children: [
+      Container(
+        width: 180,
+        child: Text(
+          controller.sqlName.value[index],
+          style: TextStyle(color: Colors.purple),
+        ),
+      ),
+      Expanded(
+        child: SelectableText(controller.dataResultList.value[index]),
+      ),
+      
+    ]);
   }
 }
+
+
 
 
 
