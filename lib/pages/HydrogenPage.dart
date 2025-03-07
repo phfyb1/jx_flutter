@@ -23,11 +23,6 @@ class HydrogenPage extends GetView<HydrogenController> {
         // width: 1034,
         child: Column(
           children: [
-            // editInput(
-            //     hintText: 'metric',
-            //     onChanged: (value) {
-            //       controller.metric.value = value;
-            //     }),
             Text(
               '请用英文输入',
               style: TextStyle(color: Colors.purple, fontSize: 20),
@@ -38,44 +33,19 @@ class HydrogenPage extends GetView<HydrogenController> {
             MessageRow('username', (value) {
               controller.username.value = value;
             }, hintText: '给加氢站的用户名'),
-            // editInput(
-            //     hintText: 'timeStart',
-            //     onChanged: (value) {
-            //       controller.timeStart.value = value;
-            //     }),
             MessageRow('password', (value) {
               controller.password.value = value;
               // Get.snackbar('time', '${controller.timeStart.value}');
             }, hintText: '给加氢站的密码'),
-            // editInput(
-            //     hintText: 'valueMin',
-            //     onChanged: (value) {
-            //       controller.valueMin.value = value;
-            //     }),
             MessageRow('hydrogen_code', (value) {
               controller.hydrogen_code.value = value;
             }, hintText: '加氢站的编码'),
-            // editInput(
-            //     hintText: 'valueMax',
-            //     onChanged: (value) {
-            //       controller.valueMax.value = value;
-            //     }),
             MessageRow('hydrogen_gun_code', (value) {
               controller.hydrogen_gun_code.value = value;
             }, hintText: '加氢枪的编码，有多个用逗号隔开'),
-            // editInput(
-            //     hintText: 'mn',
-            //     onChanged: (value) {
-            //       controller.mn.value = value;
-            //     }),
             MessageRow('hydrogen_containers_num', (value) {
               controller.hydrogen_containers_num.value = value;
             }, hintText: '储氢容器的编码，有多个用逗号隔开'),
-            // editInput(
-            //     hintText: 'ec',
-            //     onChanged: (value) {
-            //       controller.ec.value = value;
-            //     }),
 
             Container(
               // width: MediaQuery.of(context).size.width * 0.2,
@@ -147,7 +117,8 @@ class HydrogenPage extends GetView<HydrogenController> {
                   physics: ClampingScrollPhysics(),
                   itemBuilder: (context, index) {
                     // return SelectableText(controller.dataResultList.value[index]);},
-                    return SQLText(index);},
+                    return SQLText(index);
+                  },
                 ))),
         Container(height: 10),
       ]);
@@ -159,21 +130,21 @@ class HydrogenPage extends GetView<HydrogenController> {
   }
 
   SQLText(index) {
-    return Row(mainAxisAlignment: MainAxisAlignment.start,
-     crossAxisAlignment: CrossAxisAlignment.start,
-     children: [
-      Container(
-        width: 180,
-        child: Text(
-          controller.sqlName.value[index],
-          style: TextStyle(color: Colors.purple),
-        ),
-      ),
-      Expanded(
-        child: SelectableText(controller.dataResultList.value[index]),
-      ),
-      
-    ]);
+    return Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 180,
+            child: Text(
+              controller.sqlName.value[index],
+              style: TextStyle(color: Colors.purple),
+            ),
+          ),
+          Expanded(
+            child: SelectableText(controller.dataResultList.value[index]),
+          ),
+        ]);
   }
 }
 

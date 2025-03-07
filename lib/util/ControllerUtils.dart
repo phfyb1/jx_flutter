@@ -3,6 +3,8 @@
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
+import 'package:crypto/crypto.dart' as crypto;
+import 'dart:convert';
 
 //将数组组合成字符串
 combination(a) {
@@ -77,19 +79,18 @@ bigEndianToFloat(String hexString) {
   // 先进行字节序反转
   String reversedHex = BigreverseByteLittle(hexString);
 
-  
   // 移除可能的0x前缀
   if (reversedHex.startsWith('0x')) {
     reversedHex = reversedHex.substring(2);
   }
-  
+
   // 将16进制字符串转换为32位无符号整数
   final int hexValue = int.parse(reversedHex, radix: 16);
-  
+
   // 创建一个ByteData来存储4字节整数
   final ByteData byteData = ByteData(4);
   byteData.setUint32(0, hexValue, Endian.big);
-  
+
   // 将字节转换为浮点数
   return byteData.getFloat32(0, Endian.big);
 }
@@ -99,19 +100,18 @@ bigEndianSwappedToFloat(String hexString) {
   // 先进行字节序反转
   String reversedHex = reverseByteOrderBig(hexString);
 
-  
   // 移除可能的0x前缀
   if (reversedHex.startsWith('0x')) {
     reversedHex = reversedHex.substring(2);
   }
-  
+
   // 将16进制字符串转换为32位无符号整数
   final int hexValue = int.parse(reversedHex, radix: 16);
-  
+
   // 创建一个ByteData来存储4字节整数
   final ByteData byteData = ByteData(4);
   byteData.setUint32(0, hexValue, Endian.big);
-  
+
   // 将字节转换为浮点数
   return byteData.getFloat32(0, Endian.big);
 }
@@ -121,36 +121,35 @@ littleEndianToFloat(String hexString) {
   if (hexString.startsWith('0x')) {
     hexString = hexString.substring(2);
   }
-  
+
   // 将16进制字符串转换为32位无符号整数
   final int hexValue = int.parse(hexString, radix: 16);
-  
+
   // 创建一个ByteData来存储4字节整数
   final ByteData byteData = ByteData(4);
   byteData.setUint32(0, hexValue, Endian.big);
-  
+
   // 将字节转换为浮点数
   return byteData.getFloat32(0, Endian.big);
-
 }
 
 //将小端字节交换的16进制字符串转成32位浮点数
 littleEndianSwappedToFloat(String hexString) {
- // 先进行字节序反转
+  // 先进行字节序反转
   String reversedHex = reverseByteOrderLittle(hexString);
-  
+
   // 移除可能的0x前缀
   if (reversedHex.startsWith('0x')) {
     reversedHex = reversedHex.substring(2);
   }
-  
+
   // 将16进制字符串转换为32位无符号整数
   final int hexValue = int.parse(reversedHex, radix: 16);
-  
+
   // 创建一个ByteData来存储4字节整数
   final ByteData byteData = ByteData(4);
   byteData.setUint32(0, hexValue, Endian.big);
-  
+
   // 将字节转换为浮点数
   return byteData.getFloat32(0, Endian.big);
 }
@@ -180,7 +179,7 @@ String reverseByteOrderBig(String hexString) {
   for (int i = 0; i < hexString.length; i += 2) {
     bytes.add(hexString.substring(i, i + 2));
   }
-  bytes = [bytes[2],bytes[3],bytes[0],bytes[1]];
+  bytes = [bytes[2], bytes[3], bytes[0], bytes[1]];
   return bytes.reversed.join();
 }
 
@@ -198,3 +197,8 @@ String BigreverseByteLittle(String hexString) {
   return bytes.reversed.join();
 }
 
+String sha256(String salt, String pwd) {
+  var bytes = utf8.encode(salt + pwd);
+  var digest = crypto.sha256.convert(bytes);
+  return digest.toString();
+}

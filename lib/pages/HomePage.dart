@@ -25,7 +25,7 @@ class HomePage extends StatelessWidget {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children:nameButtonList,
+          children: nameButtonList,
           // children: <Widget>[
           //   nameButtonArea()
           // ],
@@ -46,13 +46,14 @@ nameButton(String name, String route) {
 }
 
 //存入nameButton的数组
-List<Widget> nameButtonList= [
-    nameButton('JT809解析', AppRoutes.JT809),
-    nameButton('HJ212造数据', AppRoutes.HJ212),
-    nameButton('ModBus解析', AppRoutes.ModBus),
-    nameButton('加氢站建表SQL生成', AppRoutes.Hydrogen),
-    // nameButton('ModBusServer解析', AppRoutes.ModBusServer),
-  ];
+List<Widget> nameButtonList = [
+  nameButton('JT809解析', AppRoutes.JT809),
+  nameButton('HJ212造数据', AppRoutes.HJ212),
+  nameButton('ModBus解析', AppRoutes.ModBus),
+  nameButton('加氢站建表SQL生成', AppRoutes.Hydrogen),
+  nameButton('MQTT SQL生成', AppRoutes.MQTT),
+  // nameButton('ModBusServer解析', AppRoutes.ModBusServer),
+];
 
 //nameButtonArea：将nameButtonList根据序号的单双，分成两列显示nameButton，单靠左，双靠右，并返回一个Column
 Column nameButtonArea() {
@@ -76,4 +77,3 @@ Column nameButtonArea() {
     ],
   );
 }
-

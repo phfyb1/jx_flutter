@@ -1,11 +1,11 @@
 import 'package:get/instance_manager.dart';
-import '../controller/HJ212Controller.dart';
+import '../controller/MQTTSQLController.dart';
 // import '../controller/HJ212ControllerNew.dart';
 
-class HJ212Binding extends Bindings {
+class MQTTSQLBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<HJ212Controller>(() => HJ212Controller());
+    Get.lazyPut<MQTTSQLController>(() => MQTTSQLController());
     // Get.lazyPut<HJ212ControllerNew>(() => HJ212ControllerNew());
   }
 }
