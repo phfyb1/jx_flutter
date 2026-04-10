@@ -14,6 +14,10 @@ import '../binding/HydrogenBinding.dart';
 import '../pages/ModBusServerPage.dart';
 import '../binding/MQTTSQLBinding.dart';
 import '../pages/MQTTSQLPage.dart';
+import '../binding/AlarmToolBinding.dart';
+import '../pages/AlarmToolPage.dart';
+import '../binding/SensorAlarmRuleBinding.dart';
+import '../pages/SensorAlarmRulePage.dart';
 
 abstract class AppRoutes {
   static const Home = '/home';
@@ -23,6 +27,9 @@ abstract class AppRoutes {
   static const ModBusServer = '/ModBusServer';
   static const Hydrogen = '/Hydrogen'; // 氢能源
   static const MQTT = '/MQTT';
+  static const AlarmTool = '/AlarmTool';
+  static const SensorAlarmRule = '/SensorAlarmRule'; // 传感器报警规则
+
   // 静态路由表
   static final routes = [
     GetPage(name: Home, page: () => HomePage(), binding: HomeBinding()),
@@ -36,5 +43,13 @@ abstract class AppRoutes {
         page: () => ModBusServerPage(),
         binding: ModBusServerBinding()),
     GetPage(name: MQTT, page: () => MQTTPage(), binding: MQTTSQLBinding()),
+    GetPage(
+        name: AlarmTool,
+        page: () => AlarmToolPage(),
+        binding: AlarmToolBinding()),
+    GetPage(
+        name: SensorAlarmRule,
+        page: () => SensorAlarmRulePage(),
+        binding: SensorAlarmRuleBinding()),
   ];
 }

@@ -2,9 +2,15 @@
 
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'dart:convert';
+import 'package:get/get.dart';
+import 'dart:html' as html;
+import 'dart:io' as io;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:path_provider/path_provider.dart';
 
 //将数组组合成字符串
 combination(a) {
@@ -13,6 +19,74 @@ combination(a) {
     message += a[i];
   }
   return message;
+}
+
+Future<void> saveToFile(
+    {required String content,
+    required String fileName,
+    String type = 'text/plain'}) async {
+  try {
+    if (kIsWeb) {
+      // Web平台使用浏览器下载API
+      final bytes = utf8.encode(content);
+      final blob = html.Blob([bytes], type);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', fileName)
+        ..click();
+      html.Url.revokeObjectUrl(url);
+      showSuccess('文件已开始下载: \$fileName');
+    } else {
+      // 移动平台使用文件系统
+      final directory = await getApplicationDocumentsDirectory();
+      final path = '\${directory.path}/\$fileName';
+      final file = io.File(path);
+      await file.writeAsString(content);
+      showSuccess('文件已保存到: \$path');
+    }
+  } catch (e) {
+    final errorMsg = '保存文件失败: \${e.toString()}\n文件名: \$fileName';
+    showError(errorMsg);
+  }
+}
+
+void showError(String message) {
+  Get.snackbar(
+    '错误',
+    '',
+    backgroundColor: Colors.red,
+    colorText: Colors.white,
+    messageText: SelectableText(
+      message,
+      style: TextStyle(color: Colors.white),
+    ),
+  );
+}
+
+void showSuccess(String message) {
+  Get.snackbar(
+    '成功',
+    '',
+    backgroundColor: Colors.green,
+    colorText: Colors.white,
+    messageText: SelectableText(
+      message,
+      style: TextStyle(color: Colors.white),
+    ),
+  );
+}
+
+void showWarning(String message) {
+  Get.snackbar(
+    '警告',
+    '',
+    backgroundColor: Colors.orange,
+    colorText: Colors.white,
+    messageText: SelectableText(
+      message,
+      style: TextStyle(color: Colors.white),
+    ),
+  );
 }
 
 //将数组组合成字符串
