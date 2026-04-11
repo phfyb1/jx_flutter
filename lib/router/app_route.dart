@@ -18,6 +18,8 @@ import '../binding/AlarmToolBinding.dart';
 import '../pages/AlarmToolPage.dart';
 import '../binding/SensorAlarmRuleBinding.dart';
 import '../pages/SensorAlarmRulePage.dart';
+import '../binding/TemplateConvertBinding.dart';
+import '../pages/TemplateConvertPage.dart';
 
 abstract class AppRoutes {
   static const Home = '/home';
@@ -29,6 +31,7 @@ abstract class AppRoutes {
   static const MQTT = '/MQTT';
   static const AlarmTool = '/AlarmTool';
   static const SensorAlarmRule = '/SensorAlarmRule'; // 传感器报警规则
+  static const TemplateConvert = '/TemplateConvert'; // 模板转换
 
   // 静态路由表
   static final routes = [
@@ -42,7 +45,7 @@ abstract class AppRoutes {
         name: ModBusServer,
         page: () => ModBusServerPage(),
         binding: ModBusServerBinding()),
-    GetPage(name: MQTT, page: () => MQTTPage(), binding: MQTTSQLBinding()),
+    GetPage(name: MQTT, page: () => MQTTSQLPage(), binding: MQTTSQLBinding()),
     GetPage(
         name: AlarmTool,
         page: () => AlarmToolPage(),
@@ -51,5 +54,9 @@ abstract class AppRoutes {
         name: SensorAlarmRule,
         page: () => SensorAlarmRulePage(),
         binding: SensorAlarmRuleBinding()),
+    GetPage(
+        name: TemplateConvert,
+        page: () => TemplateConvertPage(),
+        binding: TemplateConvertBinding()),
   ];
 }

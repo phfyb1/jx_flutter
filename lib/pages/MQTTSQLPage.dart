@@ -1,45 +1,155 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jx_flutter/controller/MQTTSQLController.dart';
 
 class MQTTSQLPage extends GetView<MQTTSQLController> {
   const MQTTSQLPage({super.key});
 
-  static const _primary = Color(0xFF059669); // 绿色
+  static const _primary = Color(0xFFEC4899);
+  static const _primaryDark = Color(0xFFDB2777);
+  static const _gradLight = Color(0xFFFCE7F3);
+  static const _gradC = Color(0xFFC026D3);
+  static const _gradD = Color(0xFF9333EA);
+  static const _gradE = Color(0xFF7C3AED);
   static const _bg = Color(0xFFF0F4F8);
   static const _cardBg = Colors.white;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
-      appBar: AppBar(
-        backgroundColor: _primary,
-        foregroundColor: Colors.white,
-        title: const Text('MQTT SQL 生成'),
-        elevation: 0,
+      body: Stack(
+        children: [
+          _buildGradientBackground(),
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    final isWide = constraints.maxWidth > 700;
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 900),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildFormCard(context),
+                              const SizedBox(height: 16),
+                              Obx(() => controller.show.value
+                                  ? _buildResultCard(context)
+                                  : const SizedBox.shrink()),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      body: LayoutBuilder(builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 700;
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(isWide ? 24 : 16),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 900),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildFormCard(context),
-                  const SizedBox(height: 16),
-                  Obx(() => controller.show.value
-                      ? _buildResultCard(context)
-                      : const SizedBox.shrink()),
-                ],
+    );
+  }
+
+  // ── 渐变背景 ──────────────────────────────────────
+  Widget _buildGradientBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment(-1.0, -1.0),
+          end: Alignment(1.0, 1.0),
+          colors: [_gradLight, _primary, _primaryDark],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // 波点阵列
+          Positioned.fill(
+            child: CustomPaint(painter: _DotPatternPainter()),
+          ),
+          Positioned(
+            top: -80, right: -80,
+            child: Container(
+              width: 260, height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.07),
               ),
             ),
           ),
-        );
-      }),
+          Positioned(
+            bottom: -40, left: -40,
+            child: Container(
+              width: 160, height: 160,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.04),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 100, left: 80,
+            child: Container(
+              width: 50, height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 顶部标题 ──────────────────────────────────────
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_rounded),
+            color: Colors.white,
+            onPressed: () => Get.back(),
+          ),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+            ),
+            child: const Icon(Icons.hub_rounded, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'MQTT SQL 生成',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                Text(
+                  'EMQX mqtt_user + mqtt_acl',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -435,4 +545,25 @@ class _FieldRowState extends State<_FieldRow> {
       ],
     );
   }
+}
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// 娉㈢偣闃靛垪缁樺埗鍣紙涓庨椤甸鏍间竴鑷达級
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+class _DotPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.12)
+      ..style = PaintingStyle.fill;
+
+    const spacing = 40.0;
+    for (var x = 0.0; x < size.width; x += spacing) {
+      for (var y = 0.0; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 1.5, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

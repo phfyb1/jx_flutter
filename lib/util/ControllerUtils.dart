@@ -276,3 +276,18 @@ String sha256(String salt, String pwd) {
   var digest = crypto.sha256.convert(bytes);
   return digest.toString();
 }
+
+// 兼容 excel 包的 Cell 类型安全取值
+String getCellString(dynamic cell) {
+  if (cell == null) return '';
+  try {
+    final v = cell.value;
+    if (v == null) return '';
+    if (v is String) return v;
+    if (v is num) return v.toString();
+    if (v is bool) return v.toString();
+    return v.toString().trim();
+  } catch (_) {
+    return '';
+  }
+}

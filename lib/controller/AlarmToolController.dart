@@ -79,7 +79,7 @@ class AlarmToolController extends GetxController {
 
     try {
       List<dynamic> alarmRules = parseExcelAndGenerateRules();
-      List<Map<String, String>> generatedSqlFiles =
+      List<Map<String, dynamic>> generatedSqlFiles =
           generateSQLFiles(alarmRules, sensorData!);
       sqlFiles.assignAll(generatedSqlFiles);
       updateStatus(
@@ -110,7 +110,7 @@ class AlarmToolController extends GetxController {
         (index, header) => headerIndices[getSafeStringValue(header)] = index);
 
     List<String> requiredColumns = [
-      '设备编码',
+      '设备名称编号*',
       '指标类型*',
       '指标位号*',
       '计量单位*',
@@ -223,9 +223,11 @@ class AlarmToolController extends GetxController {
         highAlarm = uuid.v4().replaceAll('-', '');
       }
 
+      String ruleName =
+          '${companyName.value}_${indicatorType}_$ruleIndex';
       jsonOutput.add({
         'RuleId': uuid.v4().replaceAll('-', ''),
-        'RuleName': '${indicatorType}_$ruleIndex',
+        'RuleName': ruleName,
         'RuleValue': '低低报:$lowLow,低报:$low,高报:$high,高高报:$highHigh',
         'SensorCount': devices.length,
         'SensorsName': devices.map((dev) => dev['设备名称编号']).toList(),
@@ -247,43 +249,57 @@ class AlarmToolController extends GetxController {
 
   final RxString companyName = ''.obs;
 
-  List<Map<String, String>> generateSQLFiles(
+  List<Map<String, dynamic>> generateSQLFiles(
       List<dynamic> alarmRules, Map<String, dynamic> sensorData) {
-    List<Map<String, String>> sqlFiles = [];
+    List<Map<String, dynamic>> sqlFiles = [];
     String currentTime = formatDateTime(DateTime.now());
     if (this.companyName.value.isEmpty) {
       throw Exception('公司名称不能为空，请先输入公司名称');
     }
     String companyName = this.companyName.value;
 
+    Map<String, dynamic> ruleResult =
+        generateRuleSQL(alarmRules, currentTime, companyName);
     sqlFiles.add({
       'name': '1insert_single_rule.sql',
-      'content': generateRuleSQL(alarmRules, currentTime, companyName)
+      'content': ruleResult['sql'],
+      'count': ruleResult['count'],
     });
 
+    Map<String, dynamic> algoResult =
+        generateAlgorithmSQL(alarmRules, currentTime);
     sqlFiles.add({
       'name': '2insert_iot_alarm_algorithm.sql',
-      'content': generateAlgorithmSQL(alarmRules, currentTime)
+      'content': algoResult['sql'],
+      'count': algoResult['count'],
     });
 
+    Map<String, dynamic> relResult =
+        generateRuleAlgorithmRelSQL(alarmRules, currentTime);
     sqlFiles.add({
       'name': '3insert_iot_alarm_rule_single_algorithm_rel.sql',
-      'content': generateRuleAlgorithmRelSQL(alarmRules, currentTime)
+      'content': relResult['sql'],
+      'count': relResult['count'],
     });
 
+    Map<String, dynamic> sensorResult =
+        generateSensorRelSQL(alarmRules, sensorData, currentTime);
     sqlFiles.add({
       'name': '4insert_iot_alarm_rule_single_sensor_rel.sql',
-      'content': generateSensorRelSQL(alarmRules, sensorData, currentTime)
+      'content': sensorResult['sql'],
+      'count': sensorResult['count'],
     });
 
     return sqlFiles;
   }
 
-  String generateRuleSQL(
+  Map<String, dynamic> generateRuleSQL(
       List<dynamic> alarmRules, String currentTime, String companyName) {
-    String sql = '';
+    List<String> values = [];
+    int count = 0;
 
     for (var rule in alarmRules) {
+      count++;
       String ruleId = getSafeStringValue(rule['RuleId']);
       String ruleName = getSafeStringValue(rule['RuleName']);
       String ruleValue = getSafeStringValue(rule['RuleValue']);
@@ -292,7 +308,6 @@ class AlarmToolController extends GetxController {
       ruleValue.split(',').forEach((item) {
         List<String> parts = item.split(':');
         if (parts.length == 2) {
-          // 使用安全转换函数处理可能的Data类型值
           String key = parts[0].trim();
           String value = getSafeStringValue(parts[1]);
           ruleValueDict[key] = value;
@@ -301,22 +316,27 @@ class AlarmToolController extends GetxController {
 
       List<String> remarkParts = [];
       ruleValueDict.forEach((key, value) {
-        if (value.isNotEmpty && value != 'null' && value != 'None') {
+        // 与 Python 步骤2一致：过滤 Python None 和字符串 'None'，保留其他值（包括 'null'）
+        if (value.isNotEmpty && value != 'None') {
           remarkParts.add('$key:$value');
         }
       });
       String remark = remarkParts.join(', ').replaceAll("'", "''");
 
-      sql += "INSERT INTO `iot_server`.`iot_alarm_rule_single` "
-          "(`id`, `tenant_id`, `name`, `normal_inhibit`, `alarm_inhibit`, `enabled`, `repeat_alarm`, `remark`, `create_person`, `update_person`, `create_date_time`, `update_date_time`) "
-          "VALUES "
-          "('$ruleId', '1', '${companyName}${ruleName}', 0, 0, 0, 0, '$remark', '1', '1', '$currentTime', '$currentTime');\n";
+      values.add(
+          "('$ruleId', '1', '${companyName}${ruleName}', 0, 0, 0, 0, '$remark', '1', '1', '$currentTime', '$currentTime')");
     }
 
-    return sql;
+    String sql = "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n"
+        "INSERT INTO `iot_server`.`iot_alarm_rule_single` "
+        "(`id`, `tenant_id`, `name`, `normal_inhibit`, `alarm_inhibit`, `enabled`, `repeat_alarm`, `remark`, `create_person`, `update_person`, `create_date_time`, `update_date_time`) "
+        "VALUES\n${values.join(',\n')};\n"
+        "SET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;";
+    return {'sql': sql, 'count': count};
   }
 
-  String generateAlgorithmSQL(List<dynamic> alarmRules, String currentTime) {
+  Map<String, dynamic> generateAlgorithmSQL(
+      List<dynamic> alarmRules, String currentTime) {
     List<Map<String, dynamic>> sqlRecords = [];
 
     for (var rule in alarmRules) {
@@ -326,18 +346,18 @@ class AlarmToolController extends GetxController {
       List<Map<String, dynamic>> records = parseRuleValue(ruleValue, ruleName);
 
       Map<String, String> idMapping = {
-        '6,1': 'low_low_alarm',
-        '6,2': 'low_alarm',
-        '0,2': 'low_alarm',
-        '3,2': 'low_equal',
-        '5,4': 'high_high_alarm',
-        '5,3': 'high_alarm',
-        '0,3': 'high_alarm',
-        '3,3': 'high_equal'
+        '6_1': 'low_low_alarm',
+        '6_2': 'low_alarm',
+        '0_2': 'low_alarm',
+        '3_2': 'low_equal',
+        '5_4': 'high_high_alarm',
+        '5_3': 'high_alarm',
+        '0_3': 'high_alarm',
+        '3_3': 'high_equal'
       };
 
       for (var record in records) {
-        String key = '${record['type']},${record['level']}';
+        String key = '${record['type']}_${record['level']}';
         if (idMapping.containsKey(key) && rule[idMapping[key]] != null) {
           record['id'] = rule[idMapping[key]];
           sqlRecords.add(record);
@@ -345,28 +365,28 @@ class AlarmToolController extends GetxController {
       }
     }
 
-    String sql = "INSERT INTO `iot_server`.`iot_alarm_algorithm` "
+    String sql = "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n"
+        "INSERT INTO `iot_server`.`iot_alarm_algorithm` "
         "(`id`, `tenant_id`, `type`, `level`, `max_value`, `min_value`, `boolean_value`, `equal_value`, `remark`, `growth_rate_value`, `decline_rate_value`, `create_person`, `update_person`, `create_date_time`, `update_date_time`) "
-        "VALUES ";
+        "VALUES\n";
 
     List<String> values = [];
     for (var record in sqlRecords) {
-      String maxValue = getSafeStringValue(record['max_value']);
-      String minValue = getSafeStringValue(record['min_value']);
-      String booleanValue = getSafeStringValue(record['boolean_value']);
-      String equalValue = getSafeStringValue(record['equal_value']) ?? 'NULL';
-      String remark = getSafeStringValue(record['remark']) ?? '';
-      String growthRate =
-          getSafeStringValue(record['growth_rate_value']) ?? 'NULL';
-      String declineRate =
-          getSafeStringValue(record['decline_rate_value']) ?? 'NULL';
+      String maxValue =
+          record['max_value'] != null ? "'${record['max_value']}'" : 'NULL';
+      String minValue =
+          record['min_value'] != null ? "'${record['min_value']}'" : 'NULL';
+      String equalValue = record['equal_value'] != null
+          ? "'${record['equal_value']}'"
+          : 'NULL';
 
       values.add(
-          "('${getSafeStringValue(record['id'])}', '1', ${getSafeStringValue(record['type'])}, ${getSafeStringValue(record['level'])}, $maxValue, $minValue, $booleanValue, $equalValue, '$remark', $growthRate, $declineRate, '1', '1', '$currentTime', '$currentTime')");
+          "('${getSafeStringValue(record['id'])}', '1', ${getSafeStringValue(record['type'])}, ${getSafeStringValue(record['level'])}, $maxValue, $minValue, NULL, $equalValue, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
     }
 
-    sql += values.join(',') + ';';
-    return sql;
+    sql += values.join(',\n') + ';\n'
+        "SET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;";
+    return {'sql': sql, 'count': sqlRecords.length};
   }
 
   List<Map<String, dynamic>> parseRuleValue(String ruleValue, String ruleName) {
@@ -379,92 +399,116 @@ class AlarmToolController extends GetxController {
       }
     });
 
-    if (ruleValueDict.containsKey('低低报') &&
-        ruleValueDict['低低报']!.isNotEmpty &&
-        ruleValueDict['低低报'] != 'null') {
+    double? lowLow = ruleValueDict['低低报'] != null && ruleValueDict['低低报']!.isNotEmpty && ruleValueDict['低低报'] != 'null'
+        ? parseNumber(ruleValueDict['低低报'])
+        : null;
+    double? low = ruleValueDict['低报'] != null && ruleValueDict['低报']!.isNotEmpty && ruleValueDict['低报'] != 'null'
+        ? parseNumber(ruleValueDict['低报'])
+        : null;
+    double? high = ruleValueDict['高报'] != null && ruleValueDict['高报']!.isNotEmpty && ruleValueDict['高报'] != 'null'
+        ? parseNumber(ruleValueDict['高报'])
+        : null;
+    double? highHigh = ruleValueDict['高高报'] != null && ruleValueDict['高高报']!.isNotEmpty && ruleValueDict['高高报'] != 'null'
+        ? parseNumber(ruleValueDict['高高报'])
+        : null;
+
+    // 阈值合理性检查（与HTML一致）
+    if (lowLow != null && low != null && lowLow > low) {
+      throw Exception("规则 '$ruleName' 中低低报(${lowLow})大于低报(${low})");
+    }
+    if (high != null && highHigh != null && high > highHigh) {
+      throw Exception("规则 '$ruleName' 中高报(${high})大于高高报(${highHigh})");
+    }
+
+    // 超下限报警（类型6）：低低报用equal_value，低报（单独）也用equal_value
+    if (lowLow != null) {
       records.add({
         'type': 6,
         'level': 1,
+        'equal_value': lowLow,
         'min_value': null,
-        'max_value': parseNumber(ruleValueDict['低低报']),
-        'boolean_value': null,
-        'equal_value': null,
-        'remark': '${ruleName}_低低报'
+        'max_value': null,
       });
-    }
-
-    if (ruleValueDict.containsKey('低报') &&
-        ruleValueDict['低报']!.isNotEmpty &&
-        ruleValueDict['低报'] != 'null') {
+      // 如果低低报和低报同时存在，生成type=0（范围）和type=3（等于）记录
+      if (low != null) {
+        records.add({
+          'type': 0,
+          'level': 2,
+          'min_value': lowLow,
+          'max_value': low,
+          'equal_value': null,
+        });
+        records.add({
+          'type': 3,
+          'level': 2,
+          'equal_value': lowLow,
+          'min_value': null,
+          'max_value': null,
+        });
+      }
+    } else if (low != null) {
+      // 只有低报，无低低报
       records.add({
         'type': 6,
         'level': 2,
-        'min_value': null,
-        'max_value': parseNumber(ruleValueDict['低报']),
-        'boolean_value': null,
-        'equal_value': null,
-        'remark': '${ruleName}_低报'
-      });
-      records.add({
-        'type': 3,
-        'level': 2,
+        'equal_value': low,
         'min_value': null,
         'max_value': null,
-        'boolean_value': null,
-        'equal_value': parseNumber(ruleValueDict['低报']),
-        'remark': '${ruleName}_低报等于'
       });
     }
 
-    if (ruleValueDict.containsKey('高报') &&
-        ruleValueDict['高报']!.isNotEmpty &&
-        ruleValueDict['高报'] != 'null') {
-      records.add({
-        'type': 5,
-        'level': 3,
-        'min_value': parseNumber(ruleValueDict['高报']),
-        'max_value': null,
-        'boolean_value': null,
-        'equal_value': null,
-        'remark': '${ruleName}_高报'
-      });
-      records.add({
-        'type': 3,
-        'level': 3,
-        'min_value': null,
-        'max_value': null,
-        'boolean_value': null,
-        'equal_value': parseNumber(ruleValueDict['高报']),
-        'remark': '${ruleName}_高报等于'
-      });
-    }
-
-    if (ruleValueDict.containsKey('高高报') &&
-        ruleValueDict['高高报']!.isNotEmpty &&
-        ruleValueDict['高高报'] != 'null') {
+    // 超上限报警（类型5）：高高报用equal_value，高报（单独）也用equal_value
+    if (highHigh != null) {
       records.add({
         'type': 5,
         'level': 4,
-        'min_value': parseNumber(ruleValueDict['高高报']),
+        'equal_value': highHigh,
+        'min_value': null,
         'max_value': null,
-        'boolean_value': null,
-        'equal_value': null,
-        'remark': '${ruleName}_高高报'
+      });
+      // 如果高高报和高报同时存在，生成type=0（范围）和type=3（等于）记录
+      if (high != null) {
+        records.add({
+          'type': 0,
+          'level': 3,
+          'min_value': high,
+          'max_value': highHigh,
+          'equal_value': null,
+        });
+        records.add({
+          'type': 3,
+          'level': 3,
+          'equal_value': highHigh,
+          'min_value': null,
+          'max_value': null,
+        });
+      }
+    } else if (high != null) {
+      // 只有高报，无高高报
+      records.add({
+        'type': 5,
+        'level': 3,
+        'equal_value': high,
+        'min_value': null,
+        'max_value': null,
       });
     }
 
     return records;
   }
 
-  String generateRuleAlgorithmRelSQL(
+  Map<String, dynamic> generateRuleAlgorithmRelSQL(
       List<dynamic> alarmRules, String currentTime) {
     String sql =
+        "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n"
         "INSERT INTO `iot_server`.`iot_alarm_rule_single_algorithm_rel` "
-        "(`id`, `tenant_id`, `rule_id`, `algorithm_id`, `sort`, `create_person`, `update_person`, `create_date_time`, `update_date_time`) "
-        "VALUES ";
+        "(`id`, `rule_id`, `algorithm_id`, `create_person`, `update_person`, "
+        "`create_date_time`, `update_date_time`) "
+        "VALUES\n";
 
     List<String> values = [];
     Uuid uuid = Uuid();
+    int count = 0;
 
     for (var rule in alarmRules) {
       List<String> algorithmIds = [];
@@ -482,28 +526,24 @@ class AlarmToolController extends GetxController {
         algorithmIds.add(getSafeStringValue(rule['high_high_alarm']));
 
       for (int i = 0; i < algorithmIds.length; i++) {
+        count++;
         String id = uuid.v4().replaceAll('-', '');
         values.add(
-            "('$id', '1', '${getSafeStringValue(rule['RuleId'])}', '${algorithmIds[i]}', ${i + 1}, '1', '1', '$currentTime', '$currentTime')");
+            "('$id', '${getSafeStringValue(rule['RuleId'])}', '${algorithmIds[i]}', '1', '1', '$currentTime', '$currentTime')");
       }
     }
 
-    sql += values.join(',') + ';';
-    return sql;
+    sql += values.join(',\n') + ';\n'
+        "SET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;";
+    return {'sql': sql, 'count': count};
   }
 
-  String generateSensorRelSQL(List<dynamic> alarmRules,
+  Map<String, dynamic> generateSensorRelSQL(List<dynamic> alarmRules,
       Map<String, dynamic> sensorData, String currentTime) {
-    String sql = "INSERT INTO `iot_server`.`iot_alarm_rule_single_sensor_rel` "
-        "(`id`, `tenant_id`, `rule_id`, `sensor_id`, `sort`, `create_person`, `update_person`, `create_date_time`, `update_date_time`) "
-        "VALUES ";
-
     List<String> values = [];
-    Uuid uuid = Uuid();
-    int sort = 1;
+    int count = 0;
 
     for (var rule in alarmRules) {
-      // 安全处理SensorsCode列表中的Data类型值
       List<String> sensorCodes = (rule['SensorsCode'] as List?)
               ?.map((code) => getSafeStringValue(code))
               .toList() ??
@@ -512,7 +552,7 @@ class AlarmToolController extends GetxController {
 
       for (var code in sensorCodes) {
         var sensor = sensorData['rows']?.firstWhere(
-            (s) => getSafeStringValue(s['sensor_code']) == code,
+            (s) => getSafeStringValue(s['element_code']) == code,
             orElse: () => null);
         if (sensor != null) {
           String sensorId = getSafeStringValue(sensor['id']);
@@ -523,15 +563,19 @@ class AlarmToolController extends GetxController {
       }
 
       for (String sensorId in sensorIds) {
-        String id = uuid.v4().replaceAll('-', '');
+        count++;
+        String id = Uuid().v4().replaceAll('-', '');
         values.add(
-            "('$id', '1', '${getSafeStringValue(rule['RuleId'])}', '$sensorId', $sort, '1', '1', '$currentTime', '$currentTime')");
-        sort++;
+            "('$id', '${getSafeStringValue(rule['RuleId'])}', '$sensorId', NULL, NULL, NULL, 'rtd', 0, '1', '1', '$currentTime', '$currentTime')");
       }
     }
 
-    sql += values.join(',') + ';';
-    return sql;
+    String sql = "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n"
+        "INSERT INTO `iot_server`.`iot_alarm_rule_single_sensor_rel` "
+        "(`id`, `rule_id`, `sensor_id`, `algorithm_id`, `alarm_date`, `alarm_data`, `alarm_data_type`, `alarm_status`, `create_person`, `update_person`, `create_date_time`, `update_date_time`) "
+        "VALUES\n${values.join(',\n')};\n"
+        "SET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;";
+    return {'sql': sql, 'count': count};
   }
 
   double? parseNumber(dynamic value) {
@@ -755,7 +799,7 @@ class AlarmToolController extends GetxController {
         final bytes = utf8.encode(content);
         final blob = html.Blob([bytes], 'text/$type');
         final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
+        final _ = html.AnchorElement(href: url)
           ..setAttribute('download', fileName)
           ..click();
         html.Url.revokeObjectUrl(url);
@@ -778,7 +822,7 @@ class AlarmToolController extends GetxController {
       }
     } catch (e) {
       final errorMsg =
-          '下载文件失败: ${e?.toString() ?? "未知错误"}\n参数: fileName=$fileName, content=${content?.length ?? 0}字符, type=$type';
+          '下载文件失败: ${e.toString()}\n参数: fileName=$fileName, content=${content?.length ?? 0}字符, type=$type';
       updateStatus(errorMsg, StatusType.error);
     }
   }
