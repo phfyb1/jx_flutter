@@ -267,6 +267,14 @@ class TemplateConvertController extends GetxController {
     );
     final sheet = excel[sensorSheetName];
 
+    // 动态获取模板实际最大行数，从第3行起全部清空
+    final maxRow = sheet.maxRows;
+    for (var r = 3; r < maxRow; r++) {
+      for (var c = 0; c < 13; c++) {
+        _setCell(sheet, r, c, '');
+      }
+    }
+
     // 从第4行（0-indexed row=3）开始写入数据
     for (var i = 0; i < rows.length; i++) {
       final row = rows[i];
@@ -301,6 +309,14 @@ class TemplateConvertController extends GetxController {
       orElse: () => 'Sheet1',
     );
     final sheet = excel[alarmSheetName];
+
+    // 动态获取模板实际最大行数，从第3行起全部清空
+    final maxRow = sheet.maxRows;
+    for (var r = 3; r < maxRow; r++) {
+      for (var c = 0; c < 9; c++) {
+        _setCell(sheet, r, c, '');
+      }
+    }
 
     // 从第4行（0-indexed row=3）开始写入数据
     for (var i = 0; i < rows.length; i++) {
