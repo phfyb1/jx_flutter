@@ -148,126 +148,194 @@ round(Min, Max) {
   return roundValue.toString();
 }
 
-//将大端的16进制字符串转成32位浮点数
-bigEndianToFloat(String hexString) {
-  // 先进行字节序反转
-  String reversedHex = BigreverseByteLittle(hexString);
-
-  // 移除可能的0x前缀
-  if (reversedHex.startsWith('0x')) {
-    reversedHex = reversedHex.substring(2);
-  }
-
-  // 将16进制字符串转换为32位无符号整数
-  final int hexValue = int.parse(reversedHex, radix: 16);
-
-  // 创建一个ByteData来存储4字节整数
-  final ByteData byteData = ByteData(4);
-  byteData.setUint32(0, hexValue, Endian.big);
-
-  // 将字节转换为浮点数
-  return byteData.getFloat32(0, Endian.big);
+// DCBA：标准大端（字节顺序 43 48 00 00 → 200.0）
+double bigEndianToFloat(String hexString) {
+  final hex = hexString.replaceAll(' ', '');
+  final int value = int.parse(hex, radix: 16);
+  final bd = ByteData(4)..setUint32(0, value, Endian.big);
+  return bd.getFloat32(0, Endian.big);
 }
 
-//将大端字节交换的16进制字符串转成32位浮点数
-bigEndianSwappedToFloat(String hexString) {
-  // 先进行字节序反转
-  String reversedHex = reverseByteOrderBig(hexString);
-
-  // 移除可能的0x前缀
-  if (reversedHex.startsWith('0x')) {
-    reversedHex = reversedHex.substring(2);
+// BADC：大端反转（字节顺序 48 43 00 00 → 200.0，等同于 DCBA）
+double bigEndianSwappedToFloat(String hexString) {
+  final hex = hexString.replaceAll(' ', '');
+  final bytes = <String>[];
+  for (var i = 0; i < hex.length; i += 2) {
+    bytes.add(hex.substring(i, i + 2));
   }
-
-  // 将16进制字符串转换为32位无符号整数
-  final int hexValue = int.parse(reversedHex, radix: 16);
-
-  // 创建一个ByteData来存储4字节整数
-  final ByteData byteData = ByteData(4);
-  byteData.setUint32(0, hexValue, Endian.big);
-
-  // 将字节转换为浮点数
-  return byteData.getFloat32(0, Endian.big);
+  // BADC：交换前后16位
+  final swapped = '${bytes[2]}${bytes[3]}${bytes[0]}${bytes[1]}';
+  final bd = ByteData(4)..setUint32(0, int.parse(swapped, radix: 16), Endian.big);
+  return bd.getFloat32(0, Endian.big);
 }
 
-//将小端的16进制字符串转成32位浮点数
-littleEndianToFloat(String hexString) {
-  if (hexString.startsWith('0x')) {
-    hexString = hexString.substring(2);
+// CDAB：小端反转（字节顺序 00 00 48 43 → 3.71e-06）
+double bigEndianToFloatSwapped(String hexString) {
+  final hex = hexString.replaceAll(' ', '');
+  final bytes = <String>[];
+  for (var i = 0; i < hex.length; i += 2) {
+    bytes.add(hex.substring(i, i + 2));
   }
-
-  // 将16进制字符串转换为32位无符号整数
-  final int hexValue = int.parse(hexString, radix: 16);
-
-  // 创建一个ByteData来存储4字节整数
-  final ByteData byteData = ByteData(4);
-  byteData.setUint32(0, hexValue, Endian.big);
-
-  // 将字节转换为浮点数
-  return byteData.getFloat32(0, Endian.big);
+  // CDAB：全字节反转
+  final reversed = bytes.reversed.join();
+  final bd = ByteData(4)..setUint32(0, int.parse(reversed, radix: 16), Endian.big);
+  return bd.getFloat32(0, Endian.big);
 }
 
-//将小端字节交换的16进制字符串转成32位浮点数
-littleEndianSwappedToFloat(String hexString) {
-  // 先进行字节序反转
-  String reversedHex = reverseByteOrderLittle(hexString);
-
-  // 移除可能的0x前缀
-  if (reversedHex.startsWith('0x')) {
-    reversedHex = reversedHex.substring(2);
-  }
-
-  // 将16进制字符串转换为32位无符号整数
-  final int hexValue = int.parse(reversedHex, radix: 16);
-
-  // 创建一个ByteData来存储4字节整数
-  final ByteData byteData = ByteData(4);
-  byteData.setUint32(0, hexValue, Endian.big);
-
-  // 将字节转换为浮点数
-  return byteData.getFloat32(0, Endian.big);
+// ABCD：标准小端（字节顺序 00 00 48 43 → 3.71e-06）
+double littleEndianToFloat(String hexString) {
+  final hex = hexString.replaceAll(' ', '');
+  final int value = int.parse(hex, radix: 16);
+  final bd = ByteData(4)..setUint32(0, value, Endian.little);
+  return bd.getFloat32(0, Endian.little);
 }
 
-// 小端字节序反转函数
-String reverseByteOrderLittle(String hexString) {
-  // 确保字符串长度是8的倍数（32位）
-  if (hexString.length % 2 != 0) {
-    hexString = '0' + hexString;
-  }
-  // 每两个字符作为一个字节，reverse这些字节
-  List<String> bytes = [];
-  for (int i = 0; i < hexString.length; i += 2) {
-    bytes.add(hexString.substring(i, i + 2));
-  }
-  return '${bytes[2]}${bytes[3]}${bytes[0]}${bytes[1]}';
+// ── Int16 有符号 2字节 ───────────────────────────────
+// 大端：AB → int16
+int int16BE(String hex) {
+  final v = int.parse(hex.replaceAll(' ', ''), radix: 16);
+  final bd = ByteData(2)..setInt16(0, v, Endian.big);
+  return bd.getInt16(0, Endian.big);
 }
 
-// 大端字节序反转函数
-String reverseByteOrderBig(String hexString) {
-  // 确保字符串长度是8的倍数（32位）
-  if (hexString.length % 2 != 0) {
-    hexString = '0' + hexString;
-  }
-  // 每两个字符作为一个字节，reverse这些字节
-  List<String> bytes = [];
-  for (int i = 0; i < hexString.length; i += 2) {
-    bytes.add(hexString.substring(i, i + 2));
-  }
-  bytes = [bytes[2], bytes[3], bytes[0], bytes[1]];
-  return bytes.reversed.join();
+// 小端：BA → int16
+int int16LE(String hex) {
+  final v = int.parse(hex.replaceAll(' ', ''), radix: 16);
+  final bd = ByteData(2)..setInt16(0, v, Endian.little);
+  return bd.getInt16(0, Endian.little);
 }
 
-// 大端字节序反转函数
-String BigreverseByteLittle(String hexString) {
-  // 确保字符串长度是8的倍数（32位）
-  if (hexString.length % 2 != 0) {
-    hexString = '0' + hexString;
+// ── UInt16 无符号 2字节 ──────────────────────────────
+// 大端：AB → uint16
+int uint16BE(String hex) {
+  final v = int.parse(hex.replaceAll(' ', ''), radix: 16);
+  final bd = ByteData(2)..setUint16(0, v, Endian.big);
+  return bd.getUint16(0, Endian.big);
+}
+
+// 小端：BA → uint16
+int uint16LE(String hex) {
+  final v = int.parse(hex.replaceAll(' ', ''), radix: 16);
+  final bd = ByteData(2)..setUint16(0, v, Endian.little);
+  return bd.getUint16(0, Endian.little);
+}
+
+// ── Int32 有符号 4字节 ───────────────────────────────
+// DCBA
+int int32DCBA(String hex) {
+  final v = int.parse(hex.replaceAll(' ', ''), radix: 16);
+  final bd = ByteData(4)..setInt32(0, v, Endian.big);
+  return bd.getInt32(0, Endian.big);
+}
+
+// BADC
+int int32BADC(String hex) {
+  final b = _swap16(hex);
+  final v = int.parse(b, radix: 16);
+  final bd = ByteData(4)..setInt32(0, v, Endian.big);
+  return bd.getInt32(0, Endian.big);
+}
+
+// CDAB
+int int32CDAB(String hex) {
+  final b = _swap8(hex);
+  final v = int.parse(b, radix: 16);
+  final bd = ByteData(4)..setInt32(0, v, Endian.big);
+  return bd.getInt32(0, Endian.big);
+}
+
+// ABCD
+int int32ABCD(String hex) {
+  final v = int.parse(hex.replaceAll(' ', ''), radix: 16);
+  final bd = ByteData(4)..setInt32(0, v, Endian.big);
+  return bd.getInt32(0, Endian.little);
+}
+
+// ── UInt32 无符号 4字节 ─────────────────────────────
+// DCBA
+int uint32DCBA(String hex) {
+  final v = int.parse(hex.replaceAll(' ', ''), radix: 16);
+  final bd = ByteData(4)..setUint32(0, v, Endian.big);
+  return bd.getUint32(0, Endian.big);
+}
+
+// BADC
+int uint32BADC(String hex) {
+  final b = _swap16(hex);
+  final v = int.parse(b, radix: 16);
+  final bd = ByteData(4)..setUint32(0, v, Endian.big);
+  return bd.getUint32(0, Endian.big);
+}
+
+// CDAB
+int uint32CDAB(String hex) {
+  final b = _swap8(hex);
+  final v = int.parse(b, radix: 16);
+  final bd = ByteData(4)..setUint32(0, v, Endian.big);
+  return bd.getUint32(0, Endian.big);
+}
+
+// ABCD
+int uint32ABCD(String hex) {
+  final v = int.parse(hex.replaceAll(' ', ''), radix: 16);
+  final bd = ByteData(4)..setUint32(0, v, Endian.big);
+  return bd.getUint32(0, Endian.little);
+}
+
+// ── Float64 双精度 8字节 ─────────────────────────────
+// 使用 Uint64List 先写字节再读 float64，兼容所有字节序
+// DCBA·BADC：标准大端
+double float64DCBA(String hex) {
+  final bd = ByteData(8);
+  final h = hex.replaceAll(' ', '');
+  for (var i = 0; i < 8; i++) {
+    bd.setUint8(i, int.parse(h.substring(i * 2, i * 2 + 2), radix: 16));
   }
-  // 每两个字符作为一个字节，reverse这些字节
-  List<String> bytes = [];
-  for (int i = 0; i < hexString.length; i += 2) {
-    bytes.add(hexString.substring(i, i + 2));
+  return Float64List.view(bd.buffer)[0];
+}
+
+// BADC·DCBA：前低后高互换
+double float64BADC(String hex) {
+  final h = hex.replaceAll(' ', '');
+  final bd = ByteData(8);
+  for (var i = 0; i < 4; i++) {
+    bd.setUint8(i, int.parse(h.substring((4 + i) * 2, (4 + i) * 2 + 2), radix: 16));
+    bd.setUint8(4 + i, int.parse(h.substring(i * 2, i * 2 + 2), radix: 16));
   }
+  return Float64List.view(bd.buffer)[0];
+}
+
+// CDAB·ABCD：全字节反转
+double float64CDAB(String hex) {
+  final h = hex.replaceAll(' ', '');
+  final bd = ByteData(8);
+  for (var i = 0; i < 8; i++) {
+    bd.setUint8(i, int.parse(h.substring((7 - i) * 2, (7 - i) * 2 + 2), radix: 16));
+  }
+  return Float64List.view(bd.buffer)[0];
+}
+
+// ABCD·CDAB：标准小端
+double float64ABCD(String hex) {
+  final h = hex.replaceAll(' ', '');
+  final bd = ByteData(8);
+  for (var i = 0; i < 8; i++) {
+    bd.setUint8(i, int.parse(h.substring((7 - i) * 2, (7 - i) * 2 + 2), radix: 16));
+  }
+  return Float64List.view(bd.buffer, 0, 8)[0];
+}
+
+// ── 辅助：交换前后16位（4字节 hex 字符串）────────────
+String _swap16(String hex) {
+  final h = hex.replaceAll(' ', '');
+  return '${h.substring(4, 8)}${h.substring(0, 4)}';
+}
+
+// ── 辅助：全字节反转（4字节 hex 字符串）──────────────
+String _swap8(String hex) {
+  final h = hex.replaceAll(' ', '');
+  final bytes = <String>[];
+  for (var i = 0; i < h.length; i += 2) bytes.add(h.substring(i, i + 2));
   return bytes.reversed.join();
 }
 

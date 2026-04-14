@@ -4,6 +4,6 @@ import '../controller/ModBusServerController.dart';
 class ModBusServerBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<ModBusServerControler>(() => ModBusServerControler());
+    Get.lazyPut<ModBusServerController>(() => ModBusServerController());
   }
 }

@@ -53,6 +53,22 @@ const List<_ToolCategory> _categories = [
       color: Color(0xFFF59E0B),
       route: AppRoutes.ModBus,
     ),
+    _ToolItem(
+      title: 'ModBus 服务端解析',
+      subtitle: 'float32 多字节序解析',
+      icon: Icons.developer_board_rounded,
+      color: Color(0xFF0EA5E9),
+      route: AppRoutes.ModBusServer,
+    ),
+  ]),
+  _ToolCategory(label: '日志解析', items: [
+    _ToolItem(
+      title: 'MQTT 日志解析',
+      subtitle: 'JSON values 计数 · code 查询',
+      icon: Icons.article_outlined,
+      color: Color(0xFF7C3AED),
+      route: AppRoutes.MqttLog,
+    ),
   ]),
   _ToolCategory(label: 'SQL 生成', items: [
     _ToolItem(

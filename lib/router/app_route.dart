@@ -20,6 +20,8 @@ import '../binding/SensorAlarmRuleBinding.dart';
 import '../pages/SensorAlarmRulePage.dart';
 import '../binding/TemplateConvertBinding.dart';
 import '../pages/TemplateConvertPage.dart';
+import '../binding/MqttLogBinding.dart';
+import '../pages/MqttLogPage.dart';
 
 abstract class AppRoutes {
   static const Home = '/home';
@@ -32,6 +34,7 @@ abstract class AppRoutes {
   static const AlarmTool = '/AlarmTool';
   static const SensorAlarmRule = '/SensorAlarmRule'; // 传感器报警规则
   static const TemplateConvert = '/TemplateConvert'; // 模板转换
+  static const MqttLog = '/MqttLog'; // MQTT 日志解析
 
   // 静态路由表
   static final routes = [
@@ -58,5 +61,6 @@ abstract class AppRoutes {
         name: TemplateConvert,
         page: () => TemplateConvertPage(),
         binding: TemplateConvertBinding()),
+    GetPage(name: MqttLog, page: () => MqttLogPage(), binding: MqttLogBinding()),
   ];
 }

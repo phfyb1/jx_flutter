@@ -274,7 +274,7 @@ class TemplateConvertController extends GetxController {
       final r = 3 + i;
 
       _setCell(sheet, r, 0, row['指标名称'] ?? '');
-      _setCell(sheet, r, 1, row['指标位号*'] ?? '');
+      _setCell(sheet, r, 1, row['指标编码'] ?? '');
       _setCell(sheet, r, 2, row['指标位号*'] ?? '');
       _setCell(sheet, r, 3, collectorCode.value.trim());
       _setCell(sheet, r, 4, projectId.value.trim());
@@ -307,7 +307,7 @@ class TemplateConvertController extends GetxController {
       final row = rows[i];
       final r = 3 + i;
 
-      _setCell(sheet, r, 0, row['指标位号*'] ?? '');
+      _setCell(sheet, r, 0, row['指标编码'] ?? '');
       _setCell(sheet, r, 1, '0'); // 数据类型: 0=rtd
       _setCell(sheet, r, 2, '1'); // 监控启用: 1
       _setCell(sheet, r, 3, '0'); // 首次报警抑制时间
