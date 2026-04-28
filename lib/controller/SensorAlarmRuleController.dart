@@ -575,7 +575,6 @@ VALUES
 
     for (var rule in alarmRules) {
       final ruleValueStr = rule['RuleValue'] as String;
-      final ruleName = rule['RuleName'] as String;
 
       final ruleDict = <String, double?>{};
       ruleValueStr.split(',').forEach((item) {
@@ -585,38 +584,51 @@ VALUES
         }
       });
 
-      final lowLow = ruleDict['低低报'];
-      final low = ruleDict['低报'];
-      final high = ruleDict['高报'];
-      final highHigh = ruleDict['高高报'];
+      double? lowLow  = ruleDict['低低报'];
+      double? low     = ruleDict['低报'];
+      double? high    = ruleDict['高报'];
+      double? highHigh = ruleDict['高高报'];
 
-      final processedLow = (lowLow != null && low != null && lowLow == low) ? null : low;
-      final processedHigh = (high != null && highHigh != null && high == highHigh) ? null : high;
+      // 处理相等情况：低低报和低报相等时只保留低低报
+      if (lowLow != null && low != null && lowLow == low) low = null;
+      // 处理相等情况：高高报和高报相等时只保留高高报
+      if (high != null && highHigh != null && high == highHigh) high = null;
+
+      // 构建 value helper（与 py 保持一致：数值用单引号包裹，NULL 直接 NULL）
+      String v(double? d) => d != null ? "'$d'" : 'NULL';
 
       // 超下限报警（类型6）
       if (lowLow != null) {
-        allSqlValues.add("('${rule['low_low_alarm']}', 1, 6, 1, NULL, '$lowLow', NULL, NULL, '${ruleName}_低低报', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
-      } else if (processedLow != null) {
-        allSqlValues.add("('${rule['low_alarm']}', 1, 6, 2, NULL, '$processedLow', NULL, NULL, '${ruleName}_低报', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        // (6, 1) => low_low_alarm id
+        allSqlValues.add("('${rule['low_low_alarm']}', 1, 6, 1, NULL, ${v(lowLow)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+      } else if (low != null) {
+        // (6, 2) => low_alarm id
+        allSqlValues.add("('${rule['low_alarm']}', 1, 6, 2, NULL, ${v(low)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       }
 
       // 数值范围内报警 & 相等判断报警（低报）
-      if (lowLow != null && processedLow != null) {
-        allSqlValues.add("('${_generateUUID()}', 1, 0, 2, NULL, '$processedLow', '$lowLow', NULL, '${ruleName}_低报范围', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
-        allSqlValues.add("('${rule['low_equal']}', 1, 3, 2, NULL, NULL, '$lowLow', NULL, '${ruleName}_低报等于', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+      if (lowLow != null && low != null) {
+        // (0, 2) => low_alarm id（与 py id_mapping 一致）
+        allSqlValues.add("('${rule['low_alarm']}', 1, 0, 2, NULL, ${v(lowLow)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        // (3, 2) => low_equal id
+        allSqlValues.add("('${rule['low_equal']}', 1, 3, 2, NULL, NULL, NULL, ${v(lowLow)}, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       }
 
       // 超上限报警（类型5）
       if (highHigh != null) {
-        allSqlValues.add("('${rule['high_high_alarm']}', 1, 5, 4, '$highHigh', NULL, NULL, NULL, '${ruleName}_高高报', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
-      } else if (processedHigh != null) {
-        allSqlValues.add("('${rule['high_alarm']}', 1, 5, 3, '$processedHigh', NULL, NULL, NULL, '${ruleName}_高报', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        // (5, 4) => high_high_alarm id
+        allSqlValues.add("('${rule['high_high_alarm']}', 1, 5, 4, ${v(highHigh)}, NULL, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+      } else if (high != null) {
+        // (5, 3) => high_alarm id
+        allSqlValues.add("('${rule['high_alarm']}', 1, 5, 3, ${v(high)}, NULL, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       }
 
       // 数值范围内报警 & 相等判断报警（高报）
-      if (highHigh != null && processedHigh != null) {
-        allSqlValues.add("('${_generateUUID()}', 1, 0, 3, '$highHigh', '$processedHigh', NULL, NULL, '${ruleName}_高报范围', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
-        allSqlValues.add("('${rule['high_equal']}', 1, 3, 3, NULL, NULL, '$highHigh', NULL, '${ruleName}_高报等于', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+      if (highHigh != null && high != null) {
+        // (0, 3) => high_alarm id（与 py id_mapping 一致）
+        allSqlValues.add("('${rule['high_alarm']}', 1, 0, 3, ${v(highHigh)}, ${v(high)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        // (3, 3) => high_equal id
+        allSqlValues.add("('${rule['high_equal']}', 1, 3, 3, NULL, NULL, NULL, ${v(highHigh)}, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       }
     }
 
@@ -639,9 +651,9 @@ ${allSqlValues.join(',\n')};""";
         final algorithmId = rule[alarmType];
         if (algorithmId != null && algorithmId != 'None') {
           final sql = """INSERT INTO \`iot_server\`.\`iot_alarm_rule_single_algorithm_rel\`
-(\`id\`, \`tenant_id\`, \`rule_id\`, \`algorithm_id\`, \`sort\`, \`create_person\`, \`update_person\`, \`create_date_time\`, \`update_date_time\`)
+(\`id\`, \`rule_id\`, \`algorithm_id\`, \`create_person\`, \`update_person\`, \`create_date_time\`, \`update_date_time\`)
 VALUES
-('${_generateUUID()}', '1', '${rule['RuleId']}', '$algorithmId', 1, '1', '1', '$currentTime', '$currentTime');""";
+('${_generateUUID()}', '${rule['RuleId']}', '$algorithmId', '1', '1', '$currentTime', '$currentTime');""";
           sqlStatements.add(sql);
         }
       }
@@ -670,9 +682,9 @@ VALUES
       for (var sensorId in sensorIds) {
         if (sensorId != null) {
           final sql = """INSERT INTO \`iot_server\`.\`iot_alarm_rule_single_sensor_rel\`
-(\`id\`, \`tenant_id\`, \`rule_id\`, \`sensor_id\`, \`sort\`, \`create_person\`, \`update_person\`, \`create_date_time\`, \`update_date_time\`)
+(\`id\`, \`rule_id\`, \`sensor_id\`, \`algorithm_id\`, \`alarm_date\`, \`alarm_data\`, \`alarm_data_type\`, \`alarm_status\`, \`create_person\`, \`update_person\`, \`create_date_time\`, \`update_date_time\`)
 VALUES
-('${_generateUUID()}', '1', '${rule['RuleId']}', '$sensorId', 1, '1', '1', '$currentTime', '$currentTime');""";
+('${_generateUUID()}', '${rule['RuleId']}', '$sensorId', NULL, NULL, NULL, 'rtd', 0, '1', '1', '$currentTime', '$currentTime');""";
           sqlStatements.add(sql);
         }
       }
