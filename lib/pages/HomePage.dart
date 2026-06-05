@@ -106,6 +106,13 @@ const List<_ToolCategory> _categories = [
       color: Color(0xFFF59E0B),
       route: AppRoutes.TemplateConvert,
     ),
+    _ToolItem(
+      title: '危险源模板校验',
+      subtitle: '重大危险源 Excel 校验修复',
+      icon: Icons.shield_rounded,
+      color: Color(0xFFEF4444),
+      route: AppRoutes.DangerSource,
+    ),
   ]),
 ];
 

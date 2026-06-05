@@ -1,4 +1,3 @@
-
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -158,7 +157,8 @@ class SensorAlarmRuleController extends GetxController {
     if (result != null) {
       xlsxFileName.value = result.files.single.name;
       xlsxData = result.files.single.bytes;
-      updateStatus('已选择Excel文件: ${result.files.single.name}', StatusType.success);
+      updateStatus(
+          '已选择Excel文件: ${result.files.single.name}', StatusType.success);
     }
   }
 
@@ -186,45 +186,58 @@ class SensorAlarmRuleController extends GetxController {
     updateStatus('开始处理文件...', StatusType.info);
 
     try {
-      final currentTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+      final currentTime =
+          DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
 
       // 读取Excel数据
       readExcelData();
 
-      // 构建指标映射
+      // 构建指标映射：支持 "温度WD" 这类 "中文名+缩写" 的格式
+      // key 用中文名，同时记录所有匹配到的原始 Excel 值用于后续显示
       final metricMap = <String, MetricConfig>{};
+      final excelMetricToConfig = <String, MetricConfig>{};
       for (var m in validMetrics) {
         metricMap[m.elementCname] = m;
+        excelMetricToConfig[m.elementCname] = m;
       }
 
       // 生成基础UUID
       String baseUUID = _generateBaseUUID();
 
       // 步骤0：生成传感器SQL和报警规则JSON
-      final (sensorSQL, sensorCount) = _generateSensorSQL(excelData, metricMap, baseUUID, currentTime);
-      final alarmRulesJson = _generateAlarmRulesJson(excelData, metricMap, baseUUID);
+      final (sensorSQL, sensorCount) =
+          _generateSensorSQL(excelData, metricMap, baseUUID, currentTime);
+      final alarmRulesJson =
+          _generateAlarmRulesJson(excelData, metricMap, baseUUID);
 
       // 步骤2：生成报警规则SQL
-      final (ruleSQL, ruleCount) = _generateRuleSQL(alarmRulesJson, currentTime);
+      final (ruleSQL, ruleCount) =
+          _generateRuleSQL(alarmRulesJson, currentTime);
 
       // 步骤3：生成报警算法SQL
-      final (algorithmSQL, algoCount) = _generateAlgorithmSQL(alarmRulesJson, currentTime);
+      final (algorithmSQL, algoCount) =
+          _generateAlgorithmSQL(alarmRulesJson, currentTime);
 
       // 步骤4：生成规则和算法绑定SQL
-      final (ruleAlgorithmRelSQL, relCount) = _generateRuleAlgorithmRelSQL(alarmRulesJson, currentTime);
+      final (ruleAlgorithmRelSQL, relCount) =
+          _generateRuleAlgorithmRelSQL(alarmRulesJson, currentTime);
 
       // 步骤5：生成传感器绑定规则SQL
-      final (sensorRuleRelSQL, sensorRelCount) = _generateSensorRuleRelSQL(alarmRulesJson, currentTime);
+      final (sensorRuleRelSQL, sensorRelCount) =
+          _generateSensorRuleRelSQL(alarmRulesJson, currentTime);
 
       // 步骤6：生成添加metric到database的SQL
-      final (metricSQL, metricCount) = _generateMetricSQL(alarmRulesJson, currentTime);
+      final (metricSQL, metricCount) =
+          _generateMetricSQL(alarmRulesJson, currentTime);
 
       // 保存生成的文件
       generatedFiles['0insert_iot_device_sensor.sql'] = sensorSQL;
       generatedFiles['1insert_single_rule.sql'] = ruleSQL;
       generatedFiles['2insert_iot_alarm_algorithm.sql'] = algorithmSQL;
-      generatedFiles['3insert_iot_alarm_rule_single_algorithm_rel.sql'] = ruleAlgorithmRelSQL;
-      generatedFiles['4insert_iot_alarm_rule_single_sensor_rel.sql'] = sensorRuleRelSQL;
+      generatedFiles['3insert_iot_alarm_rule_single_algorithm_rel.sql'] =
+          ruleAlgorithmRelSQL;
+      generatedFiles['4insert_iot_alarm_rule_single_sensor_rel.sql'] =
+          sensorRuleRelSQL;
       generatedFiles['5iot_device_sensor_database.sql'] = metricSQL;
       // JSON预览（用于对照检查）
       generatedFiles['_alarm_rules_preview.json'] = jsonEncode(alarmRulesJson);
@@ -235,7 +248,8 @@ class SensorAlarmRuleController extends GetxController {
       fileCounts['1insert_single_rule.sql'] = ruleCount;
       fileCounts['2insert_iot_alarm_algorithm.sql'] = algoCount;
       fileCounts['3insert_iot_alarm_rule_single_algorithm_rel.sql'] = relCount;
-      fileCounts['4insert_iot_alarm_rule_single_sensor_rel.sql'] = sensorRelCount;
+      fileCounts['4insert_iot_alarm_rule_single_sensor_rel.sql'] =
+          sensorRelCount;
       fileCounts['5iot_device_sensor_database.sql'] = metricCount;
 
       hasResult.value = true;
@@ -249,10 +263,10 @@ class SensorAlarmRuleController extends GetxController {
 
   void readExcelData() {
     var excel = Excel.decodeBytes(xlsxData!);
-    
+
     // 打印所有工作表名称
     print('所有工作表: ${excel.tables.keys.toList()}');
-    
+
     // 明确指定读取"指标信息"工作表
     var sheet = excel['指标信息'];
     if (sheet == null) {
@@ -270,7 +284,7 @@ class SensorAlarmRuleController extends GetxController {
     // 根据实际列名动态确定列索引
     List<dynamic> headerRow = rows[1];
     final colMap = <String, int>{};
-    
+
     for (int i = 0; i < headerRow.length; i++) {
       var cell = headerRow[i];
       var headerName = cell?.value?.toString() ?? '';
@@ -288,14 +302,14 @@ class SensorAlarmRuleController extends GetxController {
         colMap['仪表量程下限*'] = i;
       } else if (headerName.contains('仪表量程上限')) {
         colMap['仪表量程上限*'] = i;
-      } else if (headerName == '低低报') {
+      } else if (headerName.contains('低低报')) {
         colMap['低低报'] = i;
-      } else if (headerName == '低报') {
+      } else if (headerName.contains('低报') && !headerName.contains('低低')) {
         colMap['低报'] = i;
-      } else if (headerName == '高报') {
-        colMap['高报'] = i;
-      } else if (headerName == '高高报') {
+      } else if (headerName.contains('高高报')) {
         colMap['高高报'] = i;
+      } else if (headerName.contains('高报') && !headerName.contains('高高')) {
+        colMap['高报'] = i;
       }
     }
 
@@ -327,19 +341,50 @@ class SensorAlarmRuleController extends GetxController {
     return num.toString().padLeft(width, '0');
   }
 
-  (String sql, int count) _generateSensorSQL(List<dynamic> data, Map<String, MetricConfig> metricMap, String baseUUID, String currentTime) {
+  /// 从 Excel 指标类型值中匹配配置，支持关键字包含匹配
+  /// 策略：
+  ///   1. 特殊短关键词优先（可燃 → 可燃气体，有毒 → 有毒气体）
+  ///   2. 完整中文名 contains 匹配（"温度" in "温度WD" ✅）
+  ///   3. 关键字可出现在字符串任意位置
+  MetricConfig? _matchMetricConfig(
+      String rawMetric, Map<String, MetricConfig> metricMap) {
+    final raw = rawMetric.trim();
+
+    for (var entry in metricMap.entries) {
+      final configName = entry.key;
+
+      // 特殊短关键词：可燃气体只需"可燃"，有毒气体只需"有毒"
+      String? shortKeyword;
+      if (configName == '可燃气体') shortKeyword = '可燃';
+      if (configName == '有毒气体') shortKeyword = '有毒';
+
+      if (shortKeyword != null && raw.contains(shortKeyword)) {
+        return entry.value;
+      }
+
+      // 通用 contains 匹配
+      if (raw.contains(configName)) {
+        return entry.value;
+      }
+    }
+
+    return null;
+  }
+
+  (String sql, int count) _generateSensorSQL(
+      List<dynamic> data,
+      Map<String, MetricConfig> metricMap,
+      String baseUUID,
+      String currentTime) {
     final sqlStatements = <String>[];
     int counter = 1;
 
     for (var item in data) {
       final mappedItem = _mapExcelRow(item);
-      
-      if (mappedItem['高报'] == null && mappedItem['高高报'] == null) continue;
 
       final metricCname = mappedItem['指标类型*']?.toString() ?? '';
-      if (!metricMap.containsKey(metricCname)) continue;
-
-      final mapping = metricMap[metricCname]!;
+      final mapping = _matchMetricConfig(metricCname, metricMap);
+      if (mapping == null) continue;
       final sensorId = baseUUID + _padLeft(counter, 4);
       counter++;
 
@@ -393,32 +438,40 @@ class SensorAlarmRuleController extends GetxController {
     }
 
     if (sqlStatements.isEmpty) return ('-- 没有生成传感器SQL', 0);
-    
+
     // 合并为单个INSERT语句
-    final valuesPart = sqlStatements.map((s) {
-      // 提取 VALUES ( ... ); 中的内容
-      final match = RegExp(r'VALUES\s*(\([\s\S]*?\));', caseSensitive: false).firstMatch(s);
-      if (match != null) return match.group(1);
-      return null;
-    }).whereType<String>().join(',\n');
-    
+    final valuesPart = sqlStatements
+        .map((s) {
+          // 提取 VALUES ( ... ); 中的内容
+          final match =
+              RegExp(r'VALUES\s*(\([\s\S]*?\));', caseSensitive: false)
+                  .firstMatch(s);
+          if (match != null) return match.group(1);
+          return null;
+        })
+        .whereType<String>()
+        .join(',\n');
+
     final header = sqlStatements.first.split('VALUES').first;
     final mergedSql = "${header}VALUES\n$valuesPart;";
-    
-    return ("START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$mergedSql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;", sqlStatements.length);
+
+    return (
+      "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$mergedSql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;",
+      sqlStatements.length
+    );
   }
 
-  List<dynamic> _generateAlarmRulesJson(List<dynamic> data, Map<String, MetricConfig> metricMap, String baseUUID) {
+  List<dynamic> _generateAlarmRulesJson(List<dynamic> data,
+      Map<String, MetricConfig> metricMap, String baseUUID) {
     final alarmRulesMap = <String, Map<String, dynamic>>{};
     int counter = 1;
 
-    // 先建立 elementCode -> sensorId 映射
+    // 先建立 elementCode -> sensorId 映射（保留所有行）
     elementCodeToSensorId.clear();
     for (var item in data) {
       final mappedItem = _mapExcelRow(item);
-      if (mappedItem['高报'] == null && mappedItem['高高报'] == null) continue;
       final metricCname = mappedItem['指标类型*']?.toString() ?? '';
-      if (!metricMap.containsKey(metricCname)) continue;
+      if (_matchMetricConfig(metricCname, metricMap) == null) continue;
 
       final sensorId = baseUUID + _padLeft(counter, 4);
       counter++;
@@ -431,21 +484,28 @@ class SensorAlarmRuleController extends GetxController {
     // 构建报警规则
     for (var item in data) {
       final mappedItem = _mapExcelRow(item);
-      if (mappedItem['高报'] == null && mappedItem['高高报'] == null) {
+      if (mappedItem['低低报'] == null &&
+          mappedItem['低报'] == null &&
+          mappedItem['高报'] == null &&
+          mappedItem['高高报'] == null) {
         continue;
       }
       final metricCname = mappedItem['指标类型*']?.toString() ?? '';
-      if (!metricMap.containsKey(metricCname)) continue;
+      final mapping = _matchMetricConfig(metricCname, metricMap);
+      if (mapping == null) continue;
+
+      // 使用配置中的中文名称作为规则标识（"温度" 而非 "温度WD"）
+      final configCname = mapping.elementCname;
 
       final ll = _parseNum(mappedItem['低低报']);
       final l = _parseNum(mappedItem['低报']);
       final h = _parseNum(mappedItem['高报']);
       final hh = _parseNum(mappedItem['高高报']);
 
-      final key = '${metricCname}_${ll}_${l}_${h}_${hh}';
+      final key = '${configCname}_${ll}_${l}_${h}_${hh}';
       if (!alarmRulesMap.containsKey(key)) {
         alarmRulesMap[key] = {
-          'indicator_type': metricCname,
+          'indicator_type': configCname,
           'rule_tuple': [ll, l, h, hh],
           'devices': <Map<String, dynamic>>[],
         };
@@ -473,9 +533,12 @@ class SensorAlarmRuleController extends GetxController {
       final h = ruleTuple[2];
       final hh = ruleTuple[3];
 
-      final sensorsName = devices.map((d) => d['设备名称编号']?.toString() ?? '').toList();
-      final sensorsCode = devices.map((d) => d['指标位号']?.toString() ?? '').toList();
-      final sensorsId = sensorsCode.map((code) => elementCodeToSensorId[code] ?? '').toList();
+      final sensorsName =
+          devices.map((d) => d['设备名称编号']?.toString() ?? '').toList();
+      final sensorsCode =
+          devices.map((d) => d['指标位号']?.toString() ?? '').toList();
+      final sensorsId =
+          sensorsCode.map((code) => elementCodeToSensorId[code] ?? '').toList();
 
       jsonOutput.add({
         'RuleId': _generateUUID(),
@@ -487,8 +550,10 @@ class SensorAlarmRuleController extends GetxController {
         'SensorsID': sensorsId.map((e) => e?.toString() ?? '').toList(),
         'low_low_alarm': ll != null ? _generateUUID() : null,
         'low_alarm': l != null ? _generateUUID() : null,
-        'low_equal': (ll != null && l != null && ll != l) ? _generateUUID() : null,
-        'high_equal': (hh != null && h != null && hh != h) ? _generateUUID() : null,
+        'low_equal':
+            (ll != null && l != null && ll != l) ? _generateUUID() : null,
+        'high_equal':
+            (hh != null && h != null && hh != h) ? _generateUUID() : null,
         'high_alarm': h != null ? _generateUUID() : null,
         'high_high_alarm': hh != null ? _generateUUID() : null,
       });
@@ -522,7 +587,8 @@ class SensorAlarmRuleController extends GetxController {
     return parsed;
   }
 
-  (String sql, int count) _generateRuleSQL(List<dynamic> alarmRules, String currentTime) {
+  (String sql, int count) _generateRuleSQL(
+      List<dynamic> alarmRules, String currentTime) {
     final sqlStatements = <String>[];
 
     for (var rule in alarmRules) {
@@ -556,21 +622,30 @@ VALUES
     }
 
     if (sqlStatements.isEmpty) return ('-- 没有生成报警规则SQL', 0);
-    
+
     // 合并为单个INSERT语句
-    final valuesPart = sqlStatements.map((s) {
-      final match = RegExp(r'VALUES\s*(\([\s\S]*?\));', caseSensitive: false).firstMatch(s);
-      if (match != null) return match.group(1);
-      return null;
-    }).whereType<String>().join(',\n');
-    
+    final valuesPart = sqlStatements
+        .map((s) {
+          final match =
+              RegExp(r'VALUES\s*(\([\s\S]*?\));', caseSensitive: false)
+                  .firstMatch(s);
+          if (match != null) return match.group(1);
+          return null;
+        })
+        .whereType<String>()
+        .join(',\n');
+
     final header = sqlStatements.first.split('VALUES').first;
     final mergedSql = "${header}VALUES\n$valuesPart;";
-    
-    return ("START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$mergedSql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;", sqlStatements.length);
+
+    return (
+      "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$mergedSql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;",
+      sqlStatements.length
+    );
   }
 
-  (String sql, int count) _generateAlgorithmSQL(List<dynamic> alarmRules, String currentTime) {
+  (String sql, int count) _generateAlgorithmSQL(
+      List<dynamic> alarmRules, String currentTime) {
     final allSqlValues = <String>[];
 
     for (var rule in alarmRules) {
@@ -584,9 +659,9 @@ VALUES
         }
       });
 
-      double? lowLow  = ruleDict['低低报'];
-      double? low     = ruleDict['低报'];
-      double? high    = ruleDict['高报'];
+      double? lowLow = ruleDict['低低报'];
+      double? low = ruleDict['低报'];
+      double? high = ruleDict['高报'];
       double? highHigh = ruleDict['高高报'];
 
       // 处理相等情况：低低报和低报相等时只保留低低报
@@ -600,35 +675,43 @@ VALUES
       // 超下限报警（类型6）
       if (lowLow != null) {
         // (6, 1) => low_low_alarm id
-        allSqlValues.add("('${rule['low_low_alarm']}', 1, 6, 1, NULL, ${v(lowLow)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        allSqlValues.add(
+            "('${rule['low_low_alarm']}', 1, 6, 1, NULL, ${v(lowLow)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       } else if (low != null) {
         // (6, 2) => low_alarm id
-        allSqlValues.add("('${rule['low_alarm']}', 1, 6, 2, NULL, ${v(low)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        allSqlValues.add(
+            "('${rule['low_alarm']}', 1, 6, 2, NULL, ${v(low)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       }
 
       // 数值范围内报警 & 相等判断报警（低报）
       if (lowLow != null && low != null) {
         // (0, 2) => low_alarm id（与 py id_mapping 一致）
-        allSqlValues.add("('${rule['low_alarm']}', 1, 0, 2, NULL, ${v(lowLow)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        allSqlValues.add(
+            "('${rule['low_alarm']}', 1, 0, 2, NULL, ${v(lowLow)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
         // (3, 2) => low_equal id
-        allSqlValues.add("('${rule['low_equal']}', 1, 3, 2, NULL, NULL, NULL, ${v(lowLow)}, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        allSqlValues.add(
+            "('${rule['low_equal']}', 1, 3, 2, NULL, NULL, NULL, ${v(lowLow)}, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       }
 
       // 超上限报警（类型5）
       if (highHigh != null) {
         // (5, 4) => high_high_alarm id
-        allSqlValues.add("('${rule['high_high_alarm']}', 1, 5, 4, ${v(highHigh)}, NULL, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        allSqlValues.add(
+            "('${rule['high_high_alarm']}', 1, 5, 4, ${v(highHigh)}, NULL, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       } else if (high != null) {
         // (5, 3) => high_alarm id
-        allSqlValues.add("('${rule['high_alarm']}', 1, 5, 3, ${v(high)}, NULL, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        allSqlValues.add(
+            "('${rule['high_alarm']}', 1, 5, 3, ${v(high)}, NULL, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       }
 
       // 数值范围内报警 & 相等判断报警（高报）
       if (highHigh != null && high != null) {
         // (0, 3) => high_alarm id（与 py id_mapping 一致）
-        allSqlValues.add("('${rule['high_alarm']}', 1, 0, 3, ${v(highHigh)}, ${v(high)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        allSqlValues.add(
+            "('${rule['high_alarm']}', 1, 0, 3, ${v(highHigh)}, ${v(high)}, NULL, NULL, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
         // (3, 3) => high_equal id
-        allSqlValues.add("('${rule['high_equal']}', 1, 3, 3, NULL, NULL, NULL, ${v(highHigh)}, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
+        allSqlValues.add(
+            "('${rule['high_equal']}', 1, 3, 3, NULL, NULL, NULL, ${v(highHigh)}, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
       }
     }
 
@@ -639,18 +722,30 @@ VALUES
 VALUES
 ${allSqlValues.join(',\n')};""";
 
-    return ("START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$sql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;", allSqlValues.length);
+    return (
+      "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$sql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;",
+      allSqlValues.length
+    );
   }
 
-  (String sql, int count) _generateRuleAlgorithmRelSQL(List<dynamic> alarmRules, String currentTime) {
+  (String sql, int count) _generateRuleAlgorithmRelSQL(
+      List<dynamic> alarmRules, String currentTime) {
     final sqlStatements = <String>[];
-    final alarmTypes = ['low_low_alarm', 'low_alarm', 'low_equal', 'high_equal', 'high_alarm', 'high_high_alarm'];
+    final alarmTypes = [
+      'low_low_alarm',
+      'low_alarm',
+      'low_equal',
+      'high_equal',
+      'high_alarm',
+      'high_high_alarm'
+    ];
 
     for (var rule in alarmRules) {
       for (var alarmType in alarmTypes) {
         final algorithmId = rule[alarmType];
         if (algorithmId != null && algorithmId != 'None') {
-          final sql = """INSERT INTO \`iot_server\`.\`iot_alarm_rule_single_algorithm_rel\`
+          final sql =
+              """INSERT INTO \`iot_server\`.\`iot_alarm_rule_single_algorithm_rel\`
 (\`id\`, \`rule_id\`, \`algorithm_id\`, \`create_person\`, \`update_person\`, \`create_date_time\`, \`update_date_time\`)
 VALUES
 ('${_generateUUID()}', '${rule['RuleId']}', '$algorithmId', '1', '1', '$currentTime', '$currentTime');""";
@@ -660,28 +755,38 @@ VALUES
     }
 
     if (sqlStatements.isEmpty) return ('-- 没有生成规则和算法绑定SQL', 0);
-    
+
     // 合并为单个INSERT语句
-    final valuesPart = sqlStatements.map((s) {
-      final match = RegExp(r'VALUES\s*(\([\s\S]*?\));', caseSensitive: false).firstMatch(s);
-      if (match != null) return match.group(1);
-      return null;
-    }).whereType<String>().join(',\n');
-    
+    final valuesPart = sqlStatements
+        .map((s) {
+          final match =
+              RegExp(r'VALUES\s*(\([\s\S]*?\));', caseSensitive: false)
+                  .firstMatch(s);
+          if (match != null) return match.group(1);
+          return null;
+        })
+        .whereType<String>()
+        .join(',\n');
+
     final header = sqlStatements.first.split('VALUES').first;
     final mergedSql = "${header}VALUES\n$valuesPart;";
-    
-    return ("START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$mergedSql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;", sqlStatements.length);
+
+    return (
+      "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$mergedSql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;",
+      sqlStatements.length
+    );
   }
 
-  (String sql, int count) _generateSensorRuleRelSQL(List<dynamic> alarmRules, String currentTime) {
+  (String sql, int count) _generateSensorRuleRelSQL(
+      List<dynamic> alarmRules, String currentTime) {
     final sqlStatements = <String>[];
 
     for (var rule in alarmRules) {
       final sensorIds = rule['SensorsID'] as List<dynamic>;
       for (var sensorId in sensorIds) {
         if (sensorId != null) {
-          final sql = """INSERT INTO \`iot_server\`.\`iot_alarm_rule_single_sensor_rel\`
+          final sql =
+              """INSERT INTO \`iot_server\`.\`iot_alarm_rule_single_sensor_rel\`
 (\`id\`, \`rule_id\`, \`sensor_id\`, \`algorithm_id\`, \`alarm_date\`, \`alarm_data\`, \`alarm_data_type\`, \`alarm_status\`, \`create_person\`, \`update_person\`, \`create_date_time\`, \`update_date_time\`)
 VALUES
 ('${_generateUUID()}', '${rule['RuleId']}', '$sensorId', NULL, NULL, NULL, 'rtd', 0, '1', '1', '$currentTime', '$currentTime');""";
@@ -691,21 +796,30 @@ VALUES
     }
 
     if (sqlStatements.isEmpty) return ('-- 没有生成传感器绑定规则SQL', 0);
-    
+
     // 合并为单个INSERT语句
-    final valuesPart = sqlStatements.map((s) {
-      final match = RegExp(r'VALUES\s*(\([\s\S]*?\));', caseSensitive: false).firstMatch(s);
-      if (match != null) return match.group(1);
-      return null;
-    }).whereType<String>().join(',\n');
-    
+    final valuesPart = sqlStatements
+        .map((s) {
+          final match =
+              RegExp(r'VALUES\s*(\([\s\S]*?\));', caseSensitive: false)
+                  .firstMatch(s);
+          if (match != null) return match.group(1);
+          return null;
+        })
+        .whereType<String>()
+        .join(',\n');
+
     final header = sqlStatements.first.split('VALUES').first;
     final mergedSql = "${header}VALUES\n$valuesPart;";
-    
-    return ("START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$mergedSql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;", sqlStatements.length);
+
+    return (
+      "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n$mergedSql\nSET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;",
+      sqlStatements.length
+    );
   }
 
-  (String sql, int count) _generateMetricSQL(List<dynamic> alarmRules, String currentTime) {
+  (String sql, int count) _generateMetricSQL(
+      List<dynamic> alarmRules, String currentTime) {
     final valuesLines = <String>[];
     final channels = [0, 1];
 
@@ -714,14 +828,18 @@ VALUES
       for (var sid in sensorIds) {
         if (sid != null) {
           for (var ch in channels) {
-            valuesLines.add("('$sid', $ch, 0, '${metric.value}', '1', '1', '$currentTime', '$currentTime')");
+            valuesLines.add(
+                "('$sid', $ch, 0, '${metric.value}', '1', '1', '$currentTime', '$currentTime')");
           }
         }
       }
     }
 
     if (valuesLines.isEmpty) return ('-- 没有生成metric数据库SQL', 0);
-    return ("INSERT INTO \`iot_server\`.\`iot_device_sensor_database\` VALUES\n${valuesLines.join(',\n')};", valuesLines.length);
+    return (
+      "INSERT INTO \`iot_server\`.\`iot_device_sensor_database\` VALUES\n${valuesLines.join(',\n')};",
+      valuesLines.length
+    );
   }
 
   void downloadGeneratedFile(String fileName, String content) {

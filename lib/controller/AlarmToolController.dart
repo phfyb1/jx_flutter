@@ -109,38 +109,74 @@ class AlarmToolController extends GetxController {
     headers.asMap().forEach(
         (index, header) => headerIndices[getSafeStringValue(header)] = index);
 
-    List<String> requiredColumns = [
-      '设备名称编号*',
-      '指标类型*',
-      '指标位号*',
-      '计量单位*',
-      '低低报',
-      '低报',
-      '高报',
-      '高高报'
-    ];
-    List<String> missingCols = requiredColumns
-        .where((col) => !headerIndices.containsKey(col))
-        .toList();
+    String? findColumnIndex(List<String> patterns) {
+      for (var header in headerIndices.keys) {
+        for (var pattern in patterns) {
+          if (header.contains(pattern)) {
+            return header;
+          }
+        }
+      }
+      return null;
+    }
+
+    String? deviceCodeCol = findColumnIndex(['设备名称编号', '设备编码']);
+    String? indicatorTypeCol = findColumnIndex(['指标类型']);
+    String? sensorCodeCol = findColumnIndex(['指标位号']);
+    String? unitCol = findColumnIndex(['计量单位']);
+    String? lowLowCol = findColumnIndex(['低低报']);
+    String? lowCol = findColumnIndex(['低报']);
+    String? highCol = findColumnIndex(['高报']);
+    String? highHighCol = findColumnIndex(['高高报']);
+
+    List<String> missingCols = [];
+    if (deviceCodeCol == null) missingCols.add('设备名称编号');
+    if (indicatorTypeCol == null) missingCols.add('指标类型');
+    if (sensorCodeCol == null) missingCols.add('指标位号');
+    if (unitCol == null) missingCols.add('计量单位');
+    if (lowLowCol == null &&
+        lowCol == null &&
+        highCol == null &&
+        highHighCol == null) {
+      missingCols.add('报警字段（低低报/低报/高报/高高报）');
+    }
+
     if (missingCols.isNotEmpty) {
       throw Exception('Excel文件缺少必要的列: ${missingCols.join(', ')}');
     }
 
     Map<String, List<Map<String, dynamic>>> alarmRulesMap = {};
 
+    Map<String, String> typeMapping = {
+      '温度': '温度',
+      '压力': '压力',
+      '液位': '液位',
+      '可燃': '可燃气体',
+      '有毒': '有毒气体',
+      '气体': '气体',
+    };
+
+    String normalizeIndicatorType(String type) {
+      for (var key in typeMapping.keys) {
+        if (type.contains(key)) {
+          return typeMapping[key]!;
+        }
+      }
+      return type;
+    }
+
     for (var row in dataRows) {
       try {
-        // 检查 headerIndices 中对应列是否存在，避免 null 访问
-        int? deviceCodeIndex = headerIndices['设备编码'];
-        int? indicatorTypeIndex = headerIndices['指标类型*'];
-        int? sensorCodeIndex = headerIndices['指标位号*'];
-        int? unitIndex = headerIndices['计量单位*'];
-        int? lowLowIndex = headerIndices['低低报'];
-        int? lowIndex = headerIndices['低报'];
-        int? highIndex = headerIndices['高报'];
-        int? highHighIndex = headerIndices['高高报'];
+        int? deviceCodeIndex = headerIndices[deviceCodeCol!];
+        int? indicatorTypeIndex = headerIndices[indicatorTypeCol!];
+        int? sensorCodeIndex = headerIndices[sensorCodeCol!];
+        int? unitIndex = headerIndices[unitCol!];
+        int? lowLowIndex = lowLowCol != null ? headerIndices[lowLowCol] : null;
+        int? lowIndex = lowCol != null ? headerIndices[lowCol] : null;
+        int? highIndex = highCol != null ? headerIndices[highCol] : null;
+        int? highHighIndex =
+            highHighCol != null ? headerIndices[highHighCol] : null;
 
-        // 确保索引存在且行数据长度足够
         if (deviceCodeIndex == null ||
             deviceCodeIndex >= row.length ||
             indicatorTypeIndex == null ||
@@ -148,28 +184,29 @@ class AlarmToolController extends GetxController {
             sensorCodeIndex == null ||
             sensorCodeIndex >= row.length ||
             unitIndex == null ||
-            unitIndex >= row.length ||
-            lowLowIndex == null ||
-            lowLowIndex >= row.length ||
-            lowIndex == null ||
-            lowIndex >= row.length ||
-            highIndex == null ||
-            highIndex >= row.length ||
-            highHighIndex == null ||
-            highHighIndex >= row.length) {
+            unitIndex >= row.length) {
           print('行数据格式不正确，跳过此行');
           continue;
         }
 
         String deviceCode = getSafeStringValue(row[deviceCodeIndex]);
-        String indicatorType = getSafeStringValue(row[indicatorTypeIndex]);
+        String rawIndicatorType = getSafeStringValue(row[indicatorTypeIndex]);
+        String indicatorType = normalizeIndicatorType(rawIndicatorType);
         String sensorCode = getSafeStringValue(row[sensorCodeIndex]);
         String unit = getSafeStringValue(row[unitIndex]);
 
-        double? lowLow = parseNumber(row[lowLowIndex]);
-        double? low = parseNumber(row[lowIndex]);
-        double? high = parseNumber(row[highIndex]);
-        double? highHigh = parseNumber(row[highHighIndex]);
+        double? lowLow = lowLowIndex != null && lowLowIndex < row.length
+            ? parseNumber(row[lowLowIndex])
+            : null;
+        double? low = lowIndex != null && lowIndex < row.length
+            ? parseNumber(row[lowIndex])
+            : null;
+        double? high = highIndex != null && highIndex < row.length
+            ? parseNumber(row[highIndex])
+            : null;
+        double? highHigh = highHighIndex != null && highHighIndex < row.length
+            ? parseNumber(row[highHighIndex])
+            : null;
 
         if (lowLow == null && low == null && high == null && highHigh == null)
           continue;
@@ -223,8 +260,7 @@ class AlarmToolController extends GetxController {
         highAlarm = uuid.v4().replaceAll('-', '');
       }
 
-      String ruleName =
-          '${companyName.value}_${indicatorType}_$ruleIndex';
+      String ruleName = '${companyName.value}_${indicatorType}_$ruleIndex';
       jsonOutput.add({
         'RuleId': uuid.v4().replaceAll('-', ''),
         'RuleName': ruleName,
@@ -376,16 +412,16 @@ class AlarmToolController extends GetxController {
           record['max_value'] != null ? "'${record['max_value']}'" : 'NULL';
       String minValue =
           record['min_value'] != null ? "'${record['min_value']}'" : 'NULL';
-      String equalValue = record['equal_value'] != null
-          ? "'${record['equal_value']}'"
-          : 'NULL';
+      String equalValue =
+          record['equal_value'] != null ? "'${record['equal_value']}'" : 'NULL';
 
       values.add(
           "('${getSafeStringValue(record['id'])}', '1', ${getSafeStringValue(record['type'])}, ${getSafeStringValue(record['level'])}, $maxValue, $minValue, NULL, $equalValue, '', NULL, NULL, '1', '1', '$currentTime', '$currentTime')");
     }
 
-    sql += values.join(',\n') + ';\n'
-        "SET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;";
+    sql += values.join(',\n') +
+        ';\n'
+            "SET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;";
     return {'sql': sql, 'count': sqlRecords.length};
   }
 
@@ -399,16 +435,24 @@ class AlarmToolController extends GetxController {
       }
     });
 
-    double? lowLow = ruleValueDict['低低报'] != null && ruleValueDict['低低报']!.isNotEmpty && ruleValueDict['低低报'] != 'null'
+    double? lowLow = ruleValueDict['低低报'] != null &&
+            ruleValueDict['低低报']!.isNotEmpty &&
+            ruleValueDict['低低报'] != 'null'
         ? parseNumber(ruleValueDict['低低报'])
         : null;
-    double? low = ruleValueDict['低报'] != null && ruleValueDict['低报']!.isNotEmpty && ruleValueDict['低报'] != 'null'
+    double? low = ruleValueDict['低报'] != null &&
+            ruleValueDict['低报']!.isNotEmpty &&
+            ruleValueDict['低报'] != 'null'
         ? parseNumber(ruleValueDict['低报'])
         : null;
-    double? high = ruleValueDict['高报'] != null && ruleValueDict['高报']!.isNotEmpty && ruleValueDict['高报'] != 'null'
+    double? high = ruleValueDict['高报'] != null &&
+            ruleValueDict['高报']!.isNotEmpty &&
+            ruleValueDict['高报'] != 'null'
         ? parseNumber(ruleValueDict['高报'])
         : null;
-    double? highHigh = ruleValueDict['高高报'] != null && ruleValueDict['高高报']!.isNotEmpty && ruleValueDict['高高报'] != 'null'
+    double? highHigh = ruleValueDict['高高报'] != null &&
+            ruleValueDict['高高报']!.isNotEmpty &&
+            ruleValueDict['高高报'] != 'null'
         ? parseNumber(ruleValueDict['高高报'])
         : null;
 
@@ -499,8 +543,7 @@ class AlarmToolController extends GetxController {
 
   Map<String, dynamic> generateRuleAlgorithmRelSQL(
       List<dynamic> alarmRules, String currentTime) {
-    String sql =
-        "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n"
+    String sql = "START TRANSACTION;\nSET FOREIGN_KEY_CHECKS = 0;\n"
         "INSERT INTO `iot_server`.`iot_alarm_rule_single_algorithm_rel` "
         "(`id`, `rule_id`, `algorithm_id`, `create_person`, `update_person`, "
         "`create_date_time`, `update_date_time`) "
@@ -533,8 +576,9 @@ class AlarmToolController extends GetxController {
       }
     }
 
-    sql += values.join(',\n') + ';\n'
-        "SET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;";
+    sql += values.join(',\n') +
+        ';\n'
+            "SET FOREIGN_KEY_CHECKS = 1;\nCOMMIT;";
     return {'sql': sql, 'count': count};
   }
 
