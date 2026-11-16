@@ -1,16 +1,21 @@
-# jx_flutter
+# jx\_flutter
 
-A new Flutter project.
+一个用于个人工作的 Flutter 项目.
 
-## Getting Started
+## 项目技术栈
 
-This project is a starting point for a Flutter application.
+使用getX搭建
 
-A few resources to get you started if this is your first Flutter project:
+## 用途
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+主要用于个人工作中，经常会碰到并且重复性高，工作量巨大的繁琐任务
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+主要功能：协议解析，sql生成，模板校验/转换
+
+## 历程
+
+初始版本纯靠古法编程，自己大框架，有问题百度Google解决。
+
+中期版本靠对话ai改进。
+
+现在全靠agent，我提需求，AI全自动😎偶尔自己手动改改
