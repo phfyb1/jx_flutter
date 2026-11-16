@@ -153,14 +153,14 @@ class MqttLogPage extends GetView<MqttLogController> {
           ),
           const SizedBox(height: 24),
           const Text(
-            '粘贴 JSON 日志后开始解析',
+            '粘贴日志后自动解析',
             style: TextStyle(
               color: Color(0xFF374151), fontSize: 16, fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '支持 { ts, values[] } 格式的 MQTT 日志',
+            '支持纯 JSON { ts, values[] }，也支持直接粘贴 Spring Boot 日志行（自动提取"订阅到的消息是：{...}"，多行自动合并）',
             style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
           ),
         ],
@@ -177,6 +177,8 @@ class MqttLogPage extends GetView<MqttLogController> {
         _buildStatsCard(),
         const SizedBox(height: 8),
         _buildQueryCard(),
+        const SizedBox(height: 8),
+        _buildStatusFilterBar(),
         const SizedBox(height: 8),
         Expanded(child: _buildMatchedList()),
       ],
@@ -277,37 +279,59 @@ class MqttLogPage extends GetView<MqttLogController> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: _primary.withOpacity(0.2)),
         ),
-        child: Row(
+        child: Column(
           children: [
-            _StatBadge(
-              label: 'values 条数',
-              value: '${controller.values.length}',
-              color: _primary,
-            ),
-            Container(
-              width: 1, height: 32,
-              color: _primary.withOpacity(0.15),
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    outerTsVal != null ? '外层 ts: ${controller.formatTs(outerTsVal)}' : '—',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (controller.values.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      '时间范围: ${controller.formatTs(controller.values.last['timestamp'] as int)}',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
+            if (controller.parseError.value.isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Text(
+                  controller.parseError.value,
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.red.shade700),
+                ),
               ),
+            ],
+            Row(
+              children: [
+                _StatBadge(
+                  label: 'values 条数',
+                  value: '${controller.values.length}',
+                  color: _primary,
+                ),
+                Container(
+                  width: 1, height: 32,
+                  color: _primary.withOpacity(0.15),
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        outerTsVal != null ? '外层 ts: ${controller.formatTs(outerTsVal)}' : '—',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (controller.values.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '时间范围: ${controller.formatTs(controller.values.last['timestamp'] ?? 0)}',
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -370,13 +394,105 @@ class MqttLogPage extends GetView<MqttLogController> {
     );
   }
 
+  // ── 在离线筛选条 ──────────────────────────────────────────
+  Widget _buildStatusFilterBar() {
+    return Obx(() {
+      final base = controller.queryCode.value.isEmpty
+          ? controller.values
+          : controller.matched;
+      final filtered = _applyStatusFilter(base);
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12, offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Text('在离线：',
+                style: TextStyle(
+                    fontSize: 13, color: Colors.grey.shade600)),
+            const SizedBox(width: 8),
+            _buildFilterChip('all', '全部'),
+            const SizedBox(width: 8),
+            _buildFilterChip('online', '在线'),
+            const SizedBox(width: 8),
+            _buildFilterChip('offline', '离线'),
+            const Spacer(),
+            Text(
+              '${filtered.length} 条',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildFilterChip(String value, String label) {
+    final selected = controller.statusFilter.value == value;
+    return InkWell(
+      onTap: () => controller.statusFilter.value = value,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? _primary.withOpacity(0.12) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? _primary : Colors.transparent,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            color: selected ? _primary : Colors.grey.shade600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 按在离线筛选列表（业务规则同 isSensorOffline）
+  List<Map<String, dynamic>> _applyStatusFilter(List<Map<String, dynamic>> items) {
+    final f = controller.statusFilter.value;
+    if (f == 'all') return items;
+    return items.where((item) {
+      final ts = int.tryParse(item['timestamp']?.toString() ?? '') ?? 0;
+      final status = int.tryParse(item['status']?.toString() ?? '') ?? 0;
+      final offline = controller.isSensorOffline(ts, status);
+      return f == 'offline' ? offline : !offline;
+    }).toList();
+  }
+
   // ── 匹配结果列表 ──────────────────────────────────────────
   Widget _buildMatchedList() {
     return Obx(() {
-      if (controller.queryCode.value.isEmpty) {
-        return _buildAllValuesList();
-      }
-      if (controller.matched.isEmpty) {
+      final isSearching = controller.queryCode.value.isNotEmpty;
+      final base = isSearching ? controller.matched : controller.values;
+      final items = _applyStatusFilter(base);
+
+      if (items.isEmpty) {
+        // 区分：无数据 / 查询无结果 / 筛选后无结果
+        final hint = base.isEmpty
+            ? (isSearching
+                ? '未找到 code="${controller.queryCode.value}" 的记录'
+                : '暂无数据')
+            : (controller.statusFilter.value == 'offline'
+                ? '没有离线记录'
+                : '没有在线记录');
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -384,19 +500,17 @@ class MqttLogPage extends GetView<MqttLogController> {
               Icon(Icons.search_off, size: 48, color: Colors.grey.shade300),
               const SizedBox(height: 12),
               Text(
-                '未找到 code="${controller.queryCode.value}" 的记录',
+                hint,
                 style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
               ),
             ],
           ),
         );
       }
-      return _buildValueListView(controller.matched, highlight: controller.queryCode.value);
+      return _buildValueListView(
+          items,
+          highlight: isSearching ? controller.queryCode.value : null);
     });
-  }
-
-  Widget _buildAllValuesList() {
-    return _buildValueListView(controller.values, highlight: null);
   }
 
   Widget _buildValueListView(List<Map<String, dynamic>> items, {String? highlight}) {
@@ -424,20 +538,22 @@ class MqttLogPage extends GetView<MqttLogController> {
   }
 
   Widget _buildValueRow(BuildContext context, Map<String, dynamic> item, int index, int total, String? highlight) {
-    final code = (item['code'] as String?) ?? '—';
-    final ts = (item['timestamp'] as int?) ?? 0;
-    final value = (item['value'] as num?)?.toString() ?? '—';
-    final status = (item['status'] as int?) ?? 0;
-    final type = (item['type'] as String?) ?? '—';
-    final sn = (item['sn'] as String?) ?? '—';
+    final code = item['code']?.toString() ?? '—';
+    // 后端字段类型不稳定（value/status/timestamp 可能是字符串或数字），统一 tryParse 兼容
+    final ts = int.tryParse(item['timestamp']?.toString() ?? '') ?? 0;
+    final value = item['value']?.toString() ?? '—';
+    final status = int.tryParse(item['status']?.toString() ?? '') ?? 0;
+    final type = item['type']?.toString() ?? '—';
+    final sn = item['sn']?.toString() ?? '—';
 
     final isFirst = index == 0;
     final isLast  = index == total - 1;
 
-    // status 颜色
+    // status 判定（业务约定）：
+    // 0=在线/正常 且 采集时间未落后上报时间 1 小时以上；否则离线
     Color statusColor;
     String statusLabel;
-    if (status == 1) {
+    if (!controller.isSensorOffline(ts, status)) {
       statusColor = const Color(0xFF10B981); statusLabel = '在线';
     } else {
       statusColor = const Color(0xFFF59E0B); statusLabel = '离线';

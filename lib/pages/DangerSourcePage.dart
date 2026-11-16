@@ -86,32 +86,55 @@ class _DangerSourcePageState extends State<DangerSourcePage> {
                                   child: _buildUploadSection(),
                                 ),
                                 const SizedBox(height: 20),
-                                _buildGlassCard(
-                                  title: '2. 执行校验',
-                                  icon: Icons.search,
-                                  child: _buildCheckSection(),
-                                ),
-                                const SizedBox(height: 20),
-                                Obx(() => controller.currentStep.value >= 2
-                                    ? _buildGlassCard(
-                                        title: '3. 下载校验结果',
-                                        icon: Icons.download,
-                                        child: _buildCheckDownloadSection(),
+                                // 批量模式卡片（仅多选文件时显示）
+                                Obx(() => controller.batchFiles.isNotEmpty
+                                    ? Column(
+                                        children: [
+                                          _buildGlassCard(
+                                            title: '2. 批量校验并修复',
+                                            icon: Icons.bolt,
+                                            child: _buildBatchSection(),
+                                          ),
+                                          const SizedBox(height: 20),
+                                        ],
                                       )
                                     : const SizedBox.shrink()),
-                                if (controller.currentStep.value >= 2)
-                                  const SizedBox(height: 20),
-                                _buildGlassCard(
-                                  title: '4. 执行修复',
-                                  icon: Icons.build,
-                                  child: _buildFixSection(),
-                                ),
-                                const SizedBox(height: 20),
-                                Obx(() => controller.currentStep.value >= 3
-                                    ? _buildGlassCard(
-                                        title: '5. 下载修复结果',
-                                        icon: Icons.download_done,
-                                        child: _buildFixDownloadSection(),
+                                Obx(() => controller.batchFiles.isEmpty
+                                    ? Column(
+                                        children: [
+                                          _buildGlassCard(
+                                            title: '3. 执行校验',
+                                            icon: Icons.search,
+                                            child: _buildCheckSection(),
+                                          ),
+                                          const SizedBox(height: 20),
+                                          Obx(() => controller
+                                                  .currentStep.value >= 2
+                                              ? _buildGlassCard(
+                                                  title: '4. 下载校验结果',
+                                                  icon: Icons.download,
+                                                  child:
+                                                      _buildCheckDownloadSection(),
+                                                )
+                                              : const SizedBox.shrink()),
+                                          if (controller.currentStep.value >= 2)
+                                            const SizedBox(height: 20),
+                                          _buildGlassCard(
+                                            title: '5. 执行修复',
+                                            icon: Icons.build,
+                                            child: _buildFixSection(),
+                                          ),
+                                          const SizedBox(height: 20),
+                                          Obx(() => controller
+                                                  .currentStep.value >= 3
+                                              ? _buildGlassCard(
+                                                  title: '6. 下载修复结果',
+                                                  icon: Icons.download_done,
+                                                  child:
+                                                      _buildFixDownloadSection(),
+                                                )
+                                              : const SizedBox.shrink()),
+                                        ],
                                       )
                                     : const SizedBox.shrink()),
                                 const SizedBox(height: 40),
@@ -291,72 +314,259 @@ class _DangerSourcePageState extends State<DangerSourcePage> {
 
   // ── 1. 选择文件 ──
   Widget _buildUploadSection() {
-    return Row(
+    return Column(
       children: [
-        ElevatedButton.icon(
-          onPressed: () => controller.pickFile(),
-          icon: const Icon(Icons.folder_open, size: 20),
-          label: const Text('选择 Excel 文件',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 0,
-          ),
-        ),
-        const SizedBox(width: 20),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: controller.xlsxFileName.value.isNotEmpty
-                  ? Colors.green.shade50
-                  : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: controller.xlsxFileName.value.isNotEmpty
-                    ? Colors.green.shade200
-                    : Colors.grey.shade300,
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: () => controller.pickFile(),
+              icon: const Icon(Icons.folder_open, size: 20),
+              label: const Text('选择 Excel 文件',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape:
+                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
               ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  controller.xlsxFileName.value.isNotEmpty
-                      ? Icons.check_circle
-                      : Icons.insert_drive_file_outlined,
+            const SizedBox(width: 20),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
                   color: controller.xlsxFileName.value.isNotEmpty
-                      ? Colors.green
-                      : Colors.grey,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    controller.xlsxFileName.value.isEmpty
-                        ? '未选择文件'
-                        : controller.xlsxFileName.value,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: controller.xlsxFileName.value.isNotEmpty
-                          ? Colors.green.shade700
-                          : Colors.grey,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                      ? Colors.green.shade50
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: controller.xlsxFileName.value.isNotEmpty
+                        ? Colors.green.shade200
+                        : Colors.grey.shade300,
                   ),
                 ),
-              ],
+                child: Row(
+                  children: [
+                    Icon(
+                      controller.xlsxFileName.value.isNotEmpty
+                          ? Icons.check_circle
+                          : Icons.insert_drive_file_outlined,
+                      color: controller.xlsxFileName.value.isNotEmpty
+                          ? Colors.green
+                          : Colors.grey,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        controller.xlsxFileName.value.isEmpty
+                            ? '未选择文件'
+                            : controller.xlsxFileName.value,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: controller.xlsxFileName.value.isNotEmpty
+                              ? Colors.green.shade700
+                              : Colors.grey,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // 可燃/有毒气体编码区分开关
+        Row(
+          children: [
+            SizedBox(
+              height: 32,
+              child: Switch(
+                value: controller.distinguishGas.value,
+                activeColor: _primary,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                onChanged: (v) => controller.distinguishGas.value = v,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              controller.distinguishGas.value
+                  ? '区分可燃/有毒气体：编码后缀 Q2 / Q1'
+                  : '不区分可燃/有毒气体：统一后缀 QT',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  // ── 2. 执行校验 ──
+  // ── 2. 批量校验并修复 ──
+  Widget _buildBatchSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            ElevatedButton.icon(
+              onPressed: controller.isProcessing.value
+                  ? null
+                  : () => controller.runBatch(),
+              icon: controller.isProcessing.value
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.bolt, size: 20),
+              label: Text(
+                controller.isProcessing.value ? '处理中...' : '批量校验并修复',
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w500),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: controller.batchHasFixResult
+                  ? () => controller.downloadBatchAllFix()
+                  : null,
+              icon: const Icon(Icons.download_done, size: 20),
+              label: const Text('下载全部修复结果',
+                  style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w500)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: controller.batchHasFixResult
+                    ? Colors.green.shade600
+                    : Colors.grey.shade300,
+                foregroundColor: controller.batchHasFixResult
+                    ? Colors.white
+                    : Colors.grey.shade600,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: controller.batchHasCheckResult
+                  ? () => controller.downloadBatchLog()
+                  : null,
+              icon: const Icon(Icons.description, size: 20),
+              label: const Text('下载批量日志',
+                  style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w500)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: controller.batchHasCheckResult
+                    ? Colors.orange.shade600
+                    : Colors.grey.shade300,
+                foregroundColor: controller.batchHasCheckResult
+                    ? Colors.white
+                    : Colors.grey.shade600,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ...controller.batchFiles.asMap().entries.map(
+            (e) => _buildBatchFileRow(e.key, e.value)),
+      ],
+    );
+  }
+
+  Widget _buildBatchFileRow(int index, BatchFileItem item) {
+    Color statusColor;
+    IconData statusIcon;
+    switch (item.status) {
+      case 'fixed':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        break;
+      case 'blocked':
+        statusColor = Colors.orange;
+        statusIcon = Icons.warning_amber_rounded;
+        break;
+      case 'error':
+        statusColor = Colors.red;
+        statusIcon = Icons.error;
+        break;
+      case 'processing':
+        statusColor = _primary;
+        statusIcon = Icons.sync;
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusIcon = Icons.hourglass_empty;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(statusIcon, size: 20, color: statusColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  item.statusText,
+                  style: TextStyle(fontSize: 12, color: statusColor),
+                ),
+              ],
+            ),
+          ),
+          if (item.checkExcel != null)
+            IconButton(
+              tooltip: '下载校验结果',
+              icon: Icon(Icons.search, size: 20, color: Colors.orange.shade700),
+              onPressed: () => controller.downloadBatchCheckExcel(index),
+            ),
+          if (item.fixExcel != null)
+            IconButton(
+              tooltip: '下载修复结果',
+              icon: Icon(Icons.download_done,
+                  size: 20, color: Colors.green.shade700),
+              onPressed: () => controller.downloadBatchFixExcel(index),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ── 3. 执行校验 ──
   Widget _buildCheckSection() {
     return Column(
       children: [

@@ -177,7 +177,7 @@ class HJ212Page extends GetView<HJ212Controller> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'HJ212 造数据',
+                'OpenTSDB 造数据',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -269,7 +269,9 @@ class HJ212Page extends GetView<HJ212Controller> {
                   const Icon(Icons.schedule, color: Colors.white, size: 14),
                   const SizedBox(width: 6),
                   Text(
-                    '${controller.mpType.value} · ${controller.day.value}天',
+                    controller.mpType.value == 'Rtd'
+                        ? '${controller.mpType.value} · ${controller.day.value}天'
+                        : '${controller.mpType.value} · ${const {'hour': '小时', 'day': '日'}[controller.type.value] ?? controller.type.value} · ${controller.day.value}天',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -310,49 +312,36 @@ class HJ212Page extends GetView<HJ212Controller> {
           if (isWide)
             Row(
               children: [
-                Expanded(child: _FieldInput(label: 'metric', hint: '监测因子', onChanged: (v) => controller.metric.value = v)),
+                Expanded(child: _FieldInput(label: 'metric', hint: '设备分类metric', onChanged: (v) => controller.metric.value = v)),
                 const SizedBox(width: 16),
-                Expanded(child: _FieldInput(label: 'mn', hint: '设备编码', onChanged: (v) => controller.mn.value = v)),
+                Expanded(child: _FieldInput(label: 'mn', hint: '采集仪目标编码', onChanged: (v) => controller.mn.value = v)),
               ],
             )
           else
             Column(children: [
-              _FieldInput(label: 'metric', hint: '监测因子', onChanged: (v) => controller.metric.value = v),
+              _FieldInput(label: 'metric', hint: '设备分类metric', onChanged: (v) => controller.metric.value = v),
               SizedBox(height: gap),
-              _FieldInput(label: 'mn', hint: '设备编码', onChanged: (v) => controller.mn.value = v),
+              _FieldInput(label: 'mn', hint: '采集仪目标编码', onChanged: (v) => controller.mn.value = v),
             ]),
           SizedBox(height: gap),
           // 第二行：ec + mp
           if (isWide)
             Row(
               children: [
-                Expanded(child: _FieldInput(label: 'ec', hint: '污染物种类', onChanged: (v) => controller.ec.value = v)),
+                Expanded(child: _FieldInput(label: 'ec', hint: '企业信用代码', onChanged: (v) => controller.ec.value = v)),
                 const SizedBox(width: 16),
-                Expanded(child: _FieldInput(label: 'mp', hint: '监测点编码', onChanged: (v) => controller.mp.value = v)),
+                Expanded(child: _FieldInput(label: 'mp', hint: '要素英文名', onChanged: (v) => controller.mp.value = v)),
               ],
             )
           else
             Column(children: [
-              _FieldInput(label: 'ec', hint: '污染物种类', onChanged: (v) => controller.ec.value = v),
+              _FieldInput(label: 'ec', hint: '企业信用代码', onChanged: (v) => controller.ec.value = v),
               SizedBox(height: gap),
-              _FieldInput(label: 'mp', hint: '监测点编码', onChanged: (v) => controller.mp.value = v),
+              _FieldInput(label: 'mp', hint: '要素英文名', onChanged: (v) => controller.mp.value = v),
             ]),
           SizedBox(height: gap),
-          // 第三行：md + day
-          if (isWide)
-            Row(
-              children: [
-                Expanded(child: _FieldInput(label: 'md', hint: '监测方式', onChanged: (v) => controller.md.value = v)),
-                const SizedBox(width: 16),
-                Expanded(child: _FieldInput(label: 'day', hint: '天数(1-365)', onChanged: (v) => controller.day.value = v)),
-              ],
-            )
-          else
-            Column(children: [
-              _FieldInput(label: 'md', hint: '监测方式', onChanged: (v) => controller.md.value = v),
-              SizedBox(height: gap),
-              _FieldInput(label: 'day', hint: '天数(1-365)', onChanged: (v) => controller.day.value = v),
-            ]),
+          // 第三行：md（占满整行）
+          _FieldInput(label: 'md', hint: '传感器目标编码（多个用逗号分隔，中英文均可）', onChanged: (v) => controller.md.value = v),
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
@@ -378,11 +367,49 @@ class HJ212Page extends GetView<HJ212Controller> {
           const SizedBox(height: 16),
           const _SectionTitle(title: '时间配置', icon: Icons.schedule),
           SizedBox(height: isWide ? 16 : 12),
-          _FieldInput(
-            label: 'timeStart',
-            hint: 'YYYY-MM-DD HH:mm:ss',
-            onChanged: (v) => controller.timeStart.value = v,
-          ),
+          // 二选一开关：按天数 / 按结束时间
+          Obx(() => Row(
+                children: [
+                  Switch(
+                    value: controller.useEndTime.value,
+                    onChanged: (v) => controller.useEndTime.value = v,
+                    activeTrackColor: _primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      controller.useEndTime.value
+                          ? '按结束时间：endTime 可编辑，day 自动推算（只读）'
+                          : '按天数：day 可编辑，endTime 自动推算（只读）',
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF4B5563)),
+                    ),
+                  ),
+                ],
+              )),
+          const SizedBox(height: 12),
+          // timeStart：始终可编辑，改动后联动推算另一侧
+          Obx(() => _FieldInput(
+                label: 'timeStart',
+                hint: 'YYYY-MM-DD HH:mm:ss',
+                value: controller.timeStart.value,
+                onChanged: (v) => controller.timeStart.value = v,
+              )),
+          SizedBox(height: gap),
+          // day / endTime：选中的那个可编辑，另一个置灰只读
+          if (isWide)
+            Row(
+              children: [
+                Expanded(child: _buildDayField()),
+                const SizedBox(width: 16),
+                Expanded(child: _buildEndTimeField()),
+              ],
+            )
+          else
+            Column(children: [
+              _buildDayField(),
+              SizedBox(height: gap),
+              _buildEndTimeField(),
+            ]),
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
@@ -392,6 +419,27 @@ class HJ212Page extends GetView<HJ212Controller> {
         ],
       ),
     );
+  }
+
+  // ── day / endTime 联动字段 ────────────────────────────────
+  Widget _buildDayField() {
+    return Obx(() => _FieldInput(
+          label: 'day',
+          hint: '天数(1-365)',
+          value: controller.day.value,
+          enabled: !controller.useEndTime.value,
+          onChanged: (v) => controller.day.value = v,
+        ));
+  }
+
+  Widget _buildEndTimeField() {
+    return Obx(() => _FieldInput(
+          label: 'endTime',
+          hint: 'YYYY-MM-DD HH:mm:ss',
+          value: controller.endTime.value,
+          enabled: controller.useEndTime.value,
+          onChanged: (v) => controller.endTime.value = v,
+        ));
   }
 
   // ── 类型选择卡 ─────────────────────────────────────────────
@@ -426,7 +474,10 @@ class HJ212Page extends GetView<HJ212Controller> {
             secondChild: Padding(
               padding: const EdgeInsets.only(top: 16),
               child: _SegmentedSelector(
-                options: const {'hour': '小时统计', 'day': '日统计'},
+                options: const {
+                  'hour': '小时统计',
+                  'day': '日统计'
+                },
                 value: controller.type.value,
                 onChanged: (v) => controller.type.value = v,
               ),
@@ -693,43 +744,84 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _FieldInput extends StatelessWidget {
+class _FieldInput extends StatefulWidget {
   final String label;
   final String hint;
   final ValueChanged<String> onChanged;
+
+  /// 外部绑定值（传了才双向同步显示，未传则保持纯输入框行为）
+  final String? value;
+
+  /// 是否可编辑；false 时置灰只读（用于 day / endTime 联动展示）
+  final bool enabled;
 
   const _FieldInput({
     required this.label,
     required this.hint,
     required this.onChanged,
+    this.value,
+    this.enabled = true,
   });
 
+  @override
+  State<_FieldInput> createState() => _FieldInputState();
+}
+
+class _FieldInputState extends State<_FieldInput> {
   static const _labelColor = Color(0xFF059669);
   static const _borderColor = Color(0xFFE5E7EB);
   static const _bgColor = Color(0xFFF9FAFB);
   static const _primary = Color(0xFF667EEA);
 
+  late final TextEditingController _textController =
+      TextEditingController(text: widget.value ?? '');
+
+  @override
+  void didUpdateWidget(covariant _FieldInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final v = widget.value;
+    if (v != null && v != _textController.text) {
+      _textController.value = TextEditingValue(
+        text: v,
+        selection: TextSelection.collapsed(offset: v.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final enabled = widget.enabled;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
-          style: const TextStyle(
+          widget.label,
+          style: TextStyle(
             fontSize: 12,
-            color: _labelColor,
+            color: enabled ? _labelColor : const Color(0xFF9CA3AF),
             fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 6),
         TextField(
+          controller: _textController,
+          readOnly: !enabled,
+          enableInteractiveSelection: enabled,
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: widget.hint,
             hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
             filled: true,
-            fillColor: _bgColor,
+            fillColor: enabled ? _bgColor : const Color(0xFFF3F4F6),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            suffixIcon: enabled
+                ? null
+                : const Icon(Icons.lock_outline, size: 16, color: Color(0xFF9CA3AF)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: _borderColor),
@@ -738,13 +830,20 @@ class _FieldInput extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: _borderColor),
             ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _borderColor),
+            ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: _primary, width: 1.5),
             ),
           ),
-          style: const TextStyle(fontSize: 14),
-          onChanged: onChanged,
+          style: TextStyle(
+            fontSize: 14,
+            color: enabled ? const Color(0xFF111827) : const Color(0xFF6B7280),
+          ),
+          onChanged: enabled ? widget.onChanged : null,
         ),
       ],
     );
