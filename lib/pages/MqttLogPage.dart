@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:jx_flutter/controller/MqttLogController.dart';
+import '../widgets/page_header.dart';
 
 class MqttLogPage extends GetView<MqttLogController> {
   const MqttLogPage({super.key});
@@ -24,16 +25,29 @@ class MqttLogPage extends GetView<MqttLogController> {
         children: [
           _buildGradientBackground(),
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                _buildAppBar(),
-                Expanded(
-                  child: Obx(() {
-                    if (controller.values.isEmpty) {
-                      return _buildEmptyState();
-                    }
-                    return _buildResultState();
-                  }),
+                // 内容区（顶部让出玻璃吸顶栏高度）
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: GlassHeaderBar.height + 16),
+                    child: Obx(() {
+                      if (controller.values.isEmpty) {
+                        return _buildEmptyState();
+                      }
+                      return _buildResultState();
+                    }),
+                  ),
+                ),
+                // 玻璃吸顶栏
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: GlassHeaderBar(
+                    padding: EdgeInsets.zero,
+                    child: _buildAppBar(),
+                  ),
                 ),
               ],
             ),

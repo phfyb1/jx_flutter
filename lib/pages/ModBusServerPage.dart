@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/ModBusServerController.dart';
+import '../widgets/page_header.dart';
 
 class ModBusServerPage extends GetView<ModBusServerController> {
   const ModBusServerPage({super.key});
@@ -23,27 +24,43 @@ class ModBusServerPage extends GetView<ModBusServerController> {
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth > 600;
                 final hPad = isWide ? (constraints.maxWidth - 640) / 2 : 16.0;
-                return SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: 16),
-                      _buildStatCard(),
-                      const SizedBox(height: 16),
-                      _buildTypeSelectorCard(),
-                      const SizedBox(height: 12),
-                      _buildByteOrderCard(),
-                      const SizedBox(height: 12),
-                      _buildInputCard(inputController),
-                      const SizedBox(height: 12),
-                      Obx(() => controller.dataResultList.isNotEmpty
-                          ? _buildResultCard()
-                          : _buildEmptyState()),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                return Stack(
+                  children: [
+                    // 内容区（顶部让出玻璃吸顶栏高度）
+                    Positioned.fill(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                            hPad, GlassHeaderBar.height + 16, hPad, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildStatCard(),
+                            const SizedBox(height: 16),
+                            _buildTypeSelectorCard(),
+                            const SizedBox(height: 12),
+                            _buildByteOrderCard(),
+                            const SizedBox(height: 12),
+                            _buildInputCard(inputController),
+                            const SizedBox(height: 12),
+                            Obx(() => controller.dataResultList.isNotEmpty
+                                ? _buildResultCard()
+                                : _buildEmptyState()),
+                            const SizedBox(height: 32),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // 玻璃吸顶栏
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: GlassHeaderBar(
+                        maxWidth: 640,
+                        child: _buildHeader(),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

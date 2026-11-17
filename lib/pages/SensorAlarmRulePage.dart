@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/SensorAlarmRuleController.dart';
+import '../widgets/page_header.dart';
 
 // ══════════════════════════════════════════════════════
 // 波点阵列绘制器
@@ -68,65 +69,19 @@ class _SensorAlarmRulePageState extends State<SensorAlarmRulePage> {
               child: CustomPaint(painter: _DotPatternPainter()),
             ),
             // 内容
-            CustomScrollView(
-              slivers: [
-                // 顶部标题区
-                SliverAppBar(
-                  expandedHeight: 140,
-                  pinned: true,
-                  backgroundColor: Colors.transparent,
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_rounded),
-                    color: Colors.white,
-                    onPressed: () => Get.back(),
-                  ),
-                  flexibleSpace: FlexibleSpaceBar(
-                    title: const Text(
-                      '传感器及报警规则SQL生成工具',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
-                      ),
-                    ),
-                    background: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment(-1.0, -1.0),
-                          end: Alignment(1.0, 1.0),
-                          colors: [_gradLight, _accent, _gradEnd],
-                        ),
-                      ),
-                      child: const SafeArea(
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
+            SafeArea(
+              bottom: false,
+              child: Stack(
+                children: [
+                  // 内容区（顶部让出玻璃吸顶栏高度）
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(
+                          20, GlassHeaderBar.height + 16, 20, 20),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 900),
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(height: 20),
-                              Text(
-                                '上传Excel文件，配置参数，一键生成所有传感器及报警规则相关SQL',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white70,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // 内容区
-                SliverPadding(
-                  padding: const EdgeInsets.all(20),
-                  sliver: SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 900),
-                        child: Column(
                           children: [
                             Obx(() => _buildStatusBanner()),
                             const SizedBox(height: 20),
@@ -161,8 +116,23 @@ class _SensorAlarmRulePageState extends State<SensorAlarmRulePage> {
                       ),
                     ),
                   ),
-                ),
-              ],
+                  ),
+                  // 玻璃吸顶栏
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: GlassHeaderBar(
+                      maxWidth: 900,
+                      child: const PageHeader(
+                        title: '传感器及报警规则SQL生成工具',
+                        subtitle: '上传Excel文件，配置参数，一键生成所有传感器及报警规则相关SQL',
+                        icon: Icons.sensors_rounded,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

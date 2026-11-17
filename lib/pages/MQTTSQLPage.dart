@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jx_flutter/controller/MQTTSQLController.dart';
+import '../widgets/page_header.dart';
 
 class MQTTSQLPage extends GetView<MQTTSQLController> {
   const MQTTSQLPage({super.key});
@@ -21,14 +22,15 @@ class MQTTSQLPage extends GetView<MQTTSQLController> {
         children: [
           _buildGradientBackground(),
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                _buildHeader(),
-                Expanded(
+                // 内容区（顶部让出玻璃吸顶栏高度）
+                Positioned.fill(
                   child: LayoutBuilder(builder: (context, constraints) {
                     final isWide = constraints.maxWidth > 700;
                     return SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      padding: const EdgeInsets.fromLTRB(
+                          16, GlassHeaderBar.height + 16, 16, 32),
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 900),
@@ -46,6 +48,16 @@ class MQTTSQLPage extends GetView<MQTTSQLController> {
                       ),
                     );
                   }),
+                ),
+                // 玻璃吸顶栏
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: GlassHeaderBar(
+                    padding: EdgeInsets.zero,
+                    child: _buildHeader(),
+                  ),
                 ),
               ],
             ),

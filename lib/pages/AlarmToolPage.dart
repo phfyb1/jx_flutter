@@ -2,6 +2,7 @@
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controller/AlarmToolController.dart';
+import '../widgets/page_header.dart';
 
 class AlarmToolPage extends StatefulWidget {
   const AlarmToolPage({super.key});
@@ -76,12 +77,13 @@ class _AlarmToolPageState extends State<AlarmToolPage> {
           _buildGradientBackground(),
           // 内容
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                _buildHeader(),
-                Expanded(
+                // 内容区（顶部让出玻璃吸顶栏高度）
+                Positioned.fill(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                    padding: const EdgeInsets.fromLTRB(
+                        16, GlassHeaderBar.height + 16, 16, 32),
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 900),
@@ -155,6 +157,16 @@ class _AlarmToolPageState extends State<AlarmToolPage> {
                         ),
                       ),
                     ),
+                  ),
+                ),
+                // 玻璃吸顶栏
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: GlassHeaderBar(
+                    padding: EdgeInsets.zero,
+                    child: _buildHeader(),
                   ),
                 ),
               ],

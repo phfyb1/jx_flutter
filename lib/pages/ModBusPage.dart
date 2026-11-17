@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controller/ModBusController.dart';
+import '../widgets/page_header.dart';
 
-class ModBusPage extends GetView<ModBusControler> {
+class ModBusPage extends GetView<ModBusController> {
   const ModBusPage({super.key});
 
   // ── 配色常量 ────────────────────────────────────
@@ -30,24 +31,37 @@ class ModBusPage extends GetView<ModBusControler> {
           _buildGradientBackground(),
           // 内容
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                _buildHeader(),
-                Expanded(
-                  child: Column(
-                    children: [
-                      _ConfigCard(controller: controller),
-                      _InputCard(controller: controller),
-                      Expanded(
-                        child: _ResultArea(
-                          controller: controller,
-                          colorHeader: _colorHeader,
-                          colorData: _colorData,
-                          colorChecksum: _colorChecksum,
-                          colorError: _colorError,
+                // 内容区（顶部让出玻璃吸顶栏高度）
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: GlassHeaderBar.height + 16),
+                    child: Column(
+                      children: [
+                        _ConfigCard(controller: controller),
+                        _InputCard(controller: controller),
+                        Expanded(
+                          child: _ResultArea(
+                            controller: controller,
+                            colorHeader: _colorHeader,
+                            colorData: _colorData,
+                            colorChecksum: _colorChecksum,
+                            colorError: _colorError,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                ),
+                // 玻璃吸顶栏
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: GlassHeaderBar(
+                    padding: EdgeInsets.zero,
+                    child: _buildHeader(),
                   ),
                 ),
               ],
@@ -118,17 +132,17 @@ class ModBusPage extends GetView<ModBusControler> {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back_ios_rounded),
-            color: const Color.fromARGB(255, 83, 78, 78),
+            color: Colors.white,
             onPressed: () => Get.back(),
           ),
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 110, 108, 108).withOpacity(0.2),
+              color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color.fromARGB(255, 80, 76, 76).withOpacity(0.3)),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
             ),
-            child: const Icon(Icons.memory_rounded, color: Color.fromARGB(255, 83, 80, 80), size: 24),
+            child: const Icon(Icons.memory_rounded, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -140,13 +154,13 @@ class ModBusPage extends GetView<ModBusControler> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color.fromARGB(255, 73, 63, 63),
+                    color: Colors.white,
                     letterSpacing: 0.3,
                   ),
                 ),
                 Text(
                   '标准 / 非标准模式',
-                  style: TextStyle(fontSize: 12, color: Color.fromARGB(179, 83, 77, 77)),
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
                 ),
               ],
             ),
@@ -161,7 +175,7 @@ class ModBusPage extends GetView<ModBusControler> {
 // 配置卡片：模式 + 起始地址
 // ════════════════════════════════════════════════════
 class _ConfigCard extends StatelessWidget {
-  final ModBusControler controller;
+  final ModBusController controller;
   const _ConfigCard({required this.controller});
 
   @override
@@ -290,7 +304,7 @@ class _Seg extends StatelessWidget {
 
 // ── 起始地址输入行 ──────────────────────────────────
 class _AddressRow extends StatelessWidget {
-  final ModBusControler controller;
+  final ModBusController controller;
   const _AddressRow({required this.controller});
 
   @override
@@ -340,7 +354,7 @@ class _AddressRow extends StatelessWidget {
 // 输入卡片
 // ════════════════════════════════════════════════════
 class _InputCard extends StatefulWidget {
-  final ModBusControler controller;
+  final ModBusController controller;
   const _InputCard({required this.controller});
 
   @override
@@ -458,7 +472,7 @@ class _InputCardState extends State<_InputCard> {
 // 结果区域
 // ════════════════════════════════════════════════════
 class _ResultArea extends StatelessWidget {
-  final ModBusControler controller;
+  final ModBusController controller;
   final Color colorHeader;
   final Color colorData;
   final Color colorChecksum;

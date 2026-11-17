@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jx_flutter/controller/HydrogenController.dart';
+import '../widgets/page_header.dart';
 
 class HydrogenPage extends GetView<HydrogenController> {
   const HydrogenPage({super.key});
@@ -19,14 +20,15 @@ class HydrogenPage extends GetView<HydrogenController> {
         children: [
           _buildGradientBackground(),
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                _buildHeader(),
-                Expanded(
+                // 内容区（顶部让出玻璃吸顶栏高度）
+                Positioned.fill(
                   child: LayoutBuilder(builder: (context, constraints) {
                     final isWide = constraints.maxWidth > 700;
                     return SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      padding: const EdgeInsets.fromLTRB(
+                          16, GlassHeaderBar.height + 16, 16, 32),
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 900),
@@ -44,6 +46,16 @@ class HydrogenPage extends GetView<HydrogenController> {
                       ),
                     );
                   }),
+                ),
+                // 玻璃吸顶栏
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: GlassHeaderBar(
+                    padding: EdgeInsets.zero,
+                    child: _buildHeader(),
+                  ),
                 ),
               ],
             ),

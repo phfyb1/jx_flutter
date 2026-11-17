@@ -28,7 +28,7 @@ class ModBusResultRow {
   });
 }
 
-class ModBusControler extends GetxController {
+class ModBusController extends GetxController {
   // ── 状态 ──────────────────────────────────────────
   var standard = true.obs; // true=标准模式，false=非标准模式
   var startAddress = '0'.obs; // 起始寄存器地址（标准模式）

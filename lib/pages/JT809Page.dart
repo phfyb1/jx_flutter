@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:jx_flutter/controller/JT809Controller.dart';
+import '../widgets/page_header.dart';
 
 class JT809Page extends GetView<JT809Controller> {
   const JT809Page({super.key});
@@ -27,19 +28,32 @@ class JT809Page extends GetView<JT809Controller> {
           _buildGradientBackground(),
           // 内容
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                _buildAppBar(),
-                Expanded(
-                  child: Obx(() {
-                    if (controller.errorMessage.value.isNotEmpty) {
-                      return _buildErrorState(controller.errorMessage.value);
-                    }
-                    if (!controller.hasResult.value) {
-                      return _buildEmptyState();
-                    }
-                    return _buildResultList();
-                  }),
+                // 内容区（顶部让出玻璃吸顶栏高度）
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: GlassHeaderBar.height + 16),
+                    child: Obx(() {
+                      if (controller.errorMessage.value.isNotEmpty) {
+                        return _buildErrorState(controller.errorMessage.value);
+                      }
+                      if (!controller.hasResult.value) {
+                        return _buildEmptyState();
+                      }
+                      return _buildResultList();
+                    }),
+                  ),
+                ),
+                // 玻璃吸顶栏
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: GlassHeaderBar(
+                    padding: EdgeInsets.zero,
+                    child: _buildAppBar(),
+                  ),
                 ),
               ],
             ),

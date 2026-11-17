@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jx_flutter/controller/HJ212Controller.dart';
+import '../widgets/page_header.dart';
 
 class HJ212Page extends GetView<HJ212Controller> {
   const HJ212Page({super.key});
@@ -33,43 +34,54 @@ class HJ212Page extends GetView<HJ212Controller> {
                 final isWide = constraints.maxWidth > 600;
                 final horizontalPad = isWide ? (constraints.maxWidth - 600) / 2 : 16.0;
 
-                return SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: horizontalPad,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // ── 顶部标题 ──────────────────────────────────
-                      _buildHeader(),
-                      const SizedBox(height: 16),
+                return Stack(
+                  children: [
+                    // ── 内容区（顶部让出玻璃吸顶栏高度）────────────
+                    Positioned.fill(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(horizontalPad,
+                            GlassHeaderBar.height + 16, horizontalPad, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // ── 统计信息卡 ──────────────────────────────────
+                            _buildStatCard(),
+                            const SizedBox(height: 16),
 
-                      // ── 统计信息卡 ──────────────────────────────────
-                      _buildStatCard(),
-                      const SizedBox(height: 16),
+                            // ── 表单输入卡 ──────────────────────────────────
+                            _buildFormCard(isWide),
+                            const SizedBox(height: 16),
 
-                      // ── 表单输入卡 ──────────────────────────────────
-                      _buildFormCard(isWide),
-                      const SizedBox(height: 16),
+                            // ── 类型选择卡 ──────────────────────────────────
+                            _buildTypeCard(),
+                            const SizedBox(height: 16),
 
-                      // ── 类型选择卡 ──────────────────────────────────
-                      _buildTypeCard(),
-                      const SizedBox(height: 16),
+                            // ── 预览卡 ─────────────────────────────────────
+                            Obx(() => controller.previewLines.isNotEmpty
+                                ? _buildPreviewCard()
+                                : const SizedBox.shrink()),
+                            Obx(() => controller.previewLines.isNotEmpty
+                                ? const SizedBox(height: 16)
+                                : const SizedBox.shrink()),
 
-                      // ── 预览卡 ─────────────────────────────────────
-                      Obx(() => controller.previewLines.isNotEmpty
-                          ? _buildPreviewCard()
-                          : const SizedBox.shrink()),
-                      Obx(() => controller.previewLines.isNotEmpty
-                          ? const SizedBox(height: 16)
-                          : const SizedBox.shrink()),
-
-                      // ── 操作按钮 ───────────────────────────────────
-                      _buildActionButtons(),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                            // ── 操作按钮 ───────────────────────────────────
+                            _buildActionButtons(),
+                            const SizedBox(height: 32),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // ── 玻璃吸顶栏 ─────────────────────────────────
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: GlassHeaderBar(
+                        maxWidth: 600,
+                        child: _buildHeader(),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

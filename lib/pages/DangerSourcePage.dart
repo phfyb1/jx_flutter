@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/DangerSourceController.dart';
+import '../widgets/page_header.dart';
 
 // ══════════════════════════════════════════════════════
 // 波点阵列绘制器
@@ -67,15 +68,18 @@ class _DangerSourcePageState extends State<DangerSourcePage> {
             Positioned.fill(
               child: CustomPaint(painter: _DotPainter()),
             ),
-            CustomScrollView(
-              slivers: [
-                _buildAppBar(),
-                SliverPadding(
-                  padding: const EdgeInsets.all(20),
-                  sliver: SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 900),
+            SafeArea(
+              bottom: false,
+              child: Stack(
+                children: [
+                  // 内容区（顶部让出玻璃吸顶栏高度）
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(
+                          20, GlassHeaderBar.height + 16, 20, 20),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 900),
                         child: Obx(() => Column(
                               children: [
                                 _buildStatusBanner(),
@@ -143,8 +147,16 @@ class _DangerSourcePageState extends State<DangerSourcePage> {
                       ),
                     ),
                   ),
-                ),
-              ],
+                  ),
+                  // 玻璃吸顶栏
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: GlassHeaderBar(maxWidth: 900, child: _buildHeader()),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -152,52 +164,12 @@ class _DangerSourcePageState extends State<DangerSourcePage> {
     );
   }
 
-  // ── AppBar ──
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 140,
-      pinned: true,
-      backgroundColor: Colors.transparent,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_rounded),
-        color: Colors.white,
-        onPressed: () => Get.back(),
-      ),
-      flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          '重大危险源模板校验修复',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment(-1.0, -1.0),
-              end: Alignment(1.0, 1.0),
-              colors: [_gradLight, _primary, _gradEnd],
-            ),
-          ),
-          child: const SafeArea(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(height: 20),
-                  Text(
-                    '上传重大危险源 Excel，自动校验并修复不合规数据',
-                    style: TextStyle(fontSize: 14, color: Colors.white70),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+  // ── 头部（吸顶）──
+  Widget _buildHeader() {
+    return const PageHeader(
+      title: '重大危险源模板校验修复',
+      subtitle: '上传重大危险源 Excel，自动校验并修复不合规数据',
+      icon: Icons.shield_rounded,
     );
   }
 
